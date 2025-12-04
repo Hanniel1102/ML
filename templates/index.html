@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍅 Chẩn Đoán Bệnh Cà Chua</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 16px;
+            font-weight: 600;
+            color: #7f8c8d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        /* History */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .history-header h2 {
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .history-item img {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #dee2e6;
+        }
+
+        .history-details {
+            flex: 1;
+        }
+
+        .history-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .history-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .history-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-delete {
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.3);
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-section {
+            margin: 30px 0;
+            display: none;
+        }
+
+        .preview-section.active {
+            display: block;
+        }
+
+        .image-preview {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .video-container {
+            position: relative;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #video {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-section.active {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .result-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .predicted-class {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .predicted-class h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+
+        .top-predictions {
+            margin-top: 20px;
+        }
+
+        .top-predictions h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .prediction-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .prediction-item:hover {
+            transform: translateX(5px);
+        }
+
+        .prediction-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .prediction-bar-container {
+            flex: 1;
+            margin: 0 15px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .prediction-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 5px;
+            transition: width 0.5s ease-out;
+        }
+
+        .prediction-percentage {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            white-space: pre-line;
+            line-height: 1.6;
+        }
+
+        .error.active {
+            display: block;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .info-box p {
+            color: #1976d2;
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍅 Hệ Thống Chẩn Đoán Bệnh Cà Chua</h1>
+        <p class="subtitle">Sử dụng AI để phát hiện bệnh trên lá cà chua</p>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('prediction')">
+                🔮 Dự đoán
+            </button>
+            <button class="tab-btn" onclick="switchTab('history')">
+                📜 Lịch sử
+            </button>
+        </div>
+
+        <!-- Tab Prediction -->
+        <div id="predictionTab" class="tab-content active">
+        <div class="info-box">
+            <p><strong>📌 Hướng dẫn sử dụng:</strong></p>
+            <p>1️⃣ Chọn ảnh từ máy tính hoặc chụp ảnh trực tiếp từ camera</p>
+            <p>2️⃣ Nhấn nút "Dự đoán" để phân tích</p>
+            <p>3️⃣ Xem kết quả và độ tin cậy</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                    📁 Chọn ảnh từ máy
+                </button>
+                <button class="btn btn-success" id="cameraBtn" onclick="openCamera()">
+                    📷 Chụp ảnh từ camera
+                </button>
+                <button class="btn btn-warning" id="predictBtn" onclick="predictImage()" disabled>
+                    🔮 Dự đoán
+                </button>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- Camera Section -->
+        <div class="video-container" id="cameraContainer" style="display: none;">
+            <video id="video" autoplay></video>
+            <canvas id="canvas"></canvas>
+            <div class="button-group" style="margin-top: 15px;">
+                <button class="btn btn-success" onclick="capturePhoto()">
+                    📸 Chụp ảnh
+                </button>
+                <button class="btn btn-warning" onclick="closeCamera()">
+                    ❌ Đóng camera
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="preview-section" id="previewSection">
+            <div class="image-preview">
+                <img id="previewImage" src="" alt="Preview">
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Đang phân tích ảnh...</p>
+        </div>
+
+        <!-- Error -->
+        <div class="error" id="error"></div>
+
+        <!-- Results -->
+        <div class="result-section" id="resultSection">
+            <h2 class="result-title">🎯 Kết Quả Chẩn Đoán</h2>
+            <div class="predicted-class">
+                <h2 id="predictedClass"></h2>
+                <p class="confidence" id="confidence"></p>
+            </div>
+            <div class="top-predictions">
+                <h3>📊 Top 5 Dự Đoán Chi Tiết</h3>
+                <div id="topPredictions"></div>
+            </div>
+        </div>
+        </div> <!-- End predictionTab -->
+
+        <!-- Tab History -->
+        <div id="historyTab" class="tab-content">
+            <div class="history-header">
+                <h2>📜 Lịch Sử Dự Đoán</h2>
+                <button class="btn btn-warning" onclick="clearAllHistory()">
+                    🗑️ Xóa tất cả
+                </button>
+            </div>
+            <div id="historyList" class="history-list">
+                <div style="text-align: center; padding: 50px; color: #7f8c8d;">
+                    <div class="spinner"></div>
+                    <p>Đang tải lịch sử...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let stream = null;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImage = file;
+                    document.getElementById('previewImage').src = e.target.result;
+                    document.getElementById('previewSection').classList.add('active');
+                    document.getElementById('predictBtn').disabled = false;
+                    hideResults();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function openCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                document.getElementById('cameraContainer').style.display = 'block';
+                document.getElementById('previewSection').classList.remove('active');
+                hideResults();
+            } catch (error) {
+                showError('❌ Không thể truy cập camera: ' + error.message);
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            canvas.toBlob(function(blob) {
+                currentImage = new File([blob], "camera_capture.jpg", { type: "image/jpeg" });
+                document.getElementById('previewImage').src = canvas.toDataURL('image/jpeg');
+                document.getElementById('previewSection').classList.add('active');
+                document.getElementById('predictBtn').disabled = false;
+                closeCamera();
+            }, 'image/jpeg');
+        }
+
+        function closeCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            document.getElementById('cameraContainer').style.display = 'none';
+        }
+
+        async function predictImage() {
+            if (!currentImage) {
+                showError('❌ Vui lòng chọn hoặc chụp ảnh trước!');
+                return;
+            }
+
+            showLoading();
+            hideResults();
+            hideError();
+
+            const formData = new FormData();
+            formData.append('file', currentImage);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayResults(result);
+                } else {
+                    // Xử lý lỗi không phải ảnh lá
+                    if (result.error === 'NOT_LEAF_IMAGE') {
+                        showError('❌ ' + result.message + '\n💡 ' + result.recommendation);
+                        
+                        // Hiển thị thông tin phân tích
+                        if (result.analysis) {
+                            const analysis = result.analysis;
+                            console.log('Phân tích ảnh:', analysis);
+                            setTimeout(() => {
+                                showError(
+                                    `❌ ${result.message}\n\n` +
+                                    `📊 Phân tích:\n` +
+                                    `• Độ nét: ${analysis.sharpness.toFixed(2)}\n` +
+                                    `• Độ sáng: ${analysis.brightness.toFixed(2)}\n` +
+                                    `• Tỷ lệ màu xanh: ${analysis.green_ratio.toFixed(2)}%\n` +
+                                    `• Điểm chất lượng: ${analysis.confidence.toFixed(2)}%\n\n` +
+                                    `💡 ${result.recommendation}`
+                                );
+                            }, 100);
+                        }
+                    } else {
+                        showError('❌ Lỗi: ' + (result.detail || result.message || 'Không thể dự đoán'));
+                    }
+                }
+            } catch (error) {
+                showError('❌ Lỗi kết nối: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults(result) {
+            document.getElementById('predictedClass').textContent = result.predicted_class;
+            
+            let confidenceText = `Độ tin cậy: ${result.confidence.toFixed(2)}%`;
+            
+            // Thêm thông tin chất lượng ảnh nếu có
+            if (result.image_quality) {
+                const quality = result.image_quality;
+                confidenceText += `\n✨ Chất lượng ảnh: ${quality.quality_score.toFixed(1)}% | ` +
+                                `Độ nét: ${quality.sharpness.toFixed(1)} | ` +
+                                `Màu xanh: ${quality.green_ratio.toFixed(1)}%`;
+            }
+            
+            document.getElementById('confidence').textContent = confidenceText;
+
+            const topPredictionsDiv = document.getElementById('topPredictions');
+            topPredictionsDiv.innerHTML = '';
+
+            result.top_predictions.forEach((pred, index) => {
+                const icon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '📍';
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                item.innerHTML = `
+                    <span class="prediction-name">${icon} ${pred.class}</span>
+                    <div class="prediction-bar-container">
+                        <div class="prediction-bar" style="width: ${pred.confidence}%"></div>
+                    </div>
+                    <span class="prediction-percentage">${pred.confidence.toFixed(2)}%</span>
+                `;
+                topPredictionsDiv.appendChild(item);
+            });
+
+            document.getElementById('resultSection').classList.add('active');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+            setTimeout(() => hideError(), 5000);
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('active');
+        }
+
+        function hideResults() {
+            document.getElementById('resultSection').classList.remove('active');
+        }
+
+        // Cleanup camera when page unloads
+        window.addEventListener('beforeunload', closeCamera);
+
+        // ==========================================
+        // TAB SWITCHING
+        // ==========================================
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            if (tabName === 'prediction') {
+                document.getElementById('predictionTab').classList.add('active');
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            } else if (tabName === 'history') {
+                document.getElementById('historyTab').classList.add('active');
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                loadHistory();
+            }
+        }
+
+        // ==========================================
+        // HISTORY MANAGEMENT
+        // ==========================================
+        async function loadHistory() {
+            try {
+                const response = await fetch('/history');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayHistory(data.history);
+                } else {
+                    showError('Không thể tải lịch sử');
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+                showError('Lỗi khi tải lịch sử');
+            }
+        }
+
+        function displayHistory(history) {
+            const historyContainer = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyContainer.innerHTML = `
+                    <div style="text-align: center; padding: 50px; color: #7f8c8d;">
+                        <p style="font-size: 3em;">📭</p>
+                        <p style="font-size: 1.2em; margin-top: 10px;">Chưa có lịch sử dự đoán nào</p>
+                        <p style="margin-top: 10px;">Hãy thử dự đoán ảnh đầu tiên!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyContainer.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <img src="${item.thumbnail}" alt="${item.predicted_class}">
+                    <div class="history-details">
+                        <div class="history-title">${item.predicted_class.replace('Tomato_', '').replace(/_/g, ' ')}</div>
+                        <div class="history-meta">
+                            <span>⏰ ${item.timestamp}</span>
+                            <span>📊 ${item.confidence}%</span>
+                            <span>🔬 Vein: ${item.vein_score}</span>
+                        </div>
+                        <div class="history-meta">
+                            <span>📁 ${item.filename}</span>
+                            <span>🍃 ${item.image_type}</span>
+                        </div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteHistoryItem(${item.id})" title="Xóa">
+                        🗑️
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteHistoryItem(id) {
+            if (!confirm('Bạn có chắc muốn xóa mục này?')) return;
+
+            try {
+                const response = await fetch(`/history/${id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadHistory(); // Reload
+                } else {
+                    showError('Không thể xóa');
+                }
+            } catch (error) {
+                console.error('Error deleting:', error);
+                showError('Lỗi khi xóa');
+            }
+        }
+
+        async function clearAllHistory() {
+            if (!confirm('Bạn có chắc muốn xóa TOÀN BỘ lịch sử?')) return;
+
+            try {
+                const response = await fetch('/history', {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadHistory(); // Reload
+                } else {
+                    showError('Không thể xóa');
+                }
+            } catch (error) {
+                console.error('Error clearing history:', error);
+                showError('Lỗi khi xóa lịch sử');
+            }
+        }
+    </script>
+</body>
+</html>
