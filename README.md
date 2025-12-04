@@ -25,20 +25,97 @@
 
 ## 🚀 Quick Start
 
-### 1. Cài đặt dependencies
+### Bước 1: Clone hoặc tải project về
 ```bash
+git clone https://github.com/Hanniel1102/ML.git
+cd ML
+```
+
+### Bước 2: Tạo môi trường ảo (khuyến nghị)
+
+**Windows (PowerShell):**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+**Windows (CMD):**
+```cmd
+python -m venv venv
+venv\Scripts\activate.bat
+```
+
+**macOS/Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### Bước 3: Cài đặt dependencies
+
+```bash
+# Cài đặt tất cả packages cần thiết
 pip install -r requirements.txt
 ```
 
-### 2. Chạy ứng dụng
+**Chi tiết packages sẽ được cài:**
+- `fastapi==0.104.1` - Framework web API
+- `uvicorn==0.24.0` - ASGI server
+- `python-multipart==0.0.6` - Xử lý file upload
+- `tensorflow==2.15.0` - Deep Learning framework
+- `Pillow==10.1.0` - Xử lý ảnh
+- `numpy==1.24.3` - Tính toán số học
+- `opencv-python==4.8.1.78` - Computer vision
+- `matplotlib==3.8.0` - Visualization
+
+**Lưu ý:** Quá trình cài đặt có thể mất 5-10 phút tùy tốc độ mạng.
+
+### Bước 4: Kiểm tra cài đặt
+
+```bash
+# Kiểm tra Python version (cần >= 3.11)
+python --version
+
+# Kiểm tra TensorFlow
+python -c "import tensorflow as tf; print(f'TensorFlow {tf.__version__}')"
+
+# Kiểm tra GPU (nếu có)
+python -c "import tensorflow as tf; print('GPU:', tf.config.list_physical_devices('GPU'))"
+```
+
+### Bước 5: Chạy ứng dụng
+
+**Cách 1: Chạy trực tiếp (khuyến nghị)**
 ```bash
 python app.py
+```
+
+**Cách 2: Chạy với Uvicorn (production mode)**
+```bash
 uvicorn app:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 5. Truy cập ứng dụng
+**Cách 3: Chạy với custom port**
+```bash
+uvicorn app:app --host 0.0.0.0 --port 5000
+```
+
+Sau khi chạy thành công, bạn sẽ thấy:
+```
+INFO:     Started server process [12345]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+✅ Model loaded successfully: best_tomato_model.keras
+```
+
+### Bước 6: Truy cập ứng dụng
 
 Mở trình duyệt và truy cập: **http://localhost:8000**
+
+**Hoặc:**
+- Từ máy khác trong cùng mạng: `http://<IP-máy-chủ>:8000`
+- Tìm IP: `ipconfig` (Windows) hoặc `ifconfig` (macOS/Linux)
 
 ## 📁 Cấu trúc Dự án
 
