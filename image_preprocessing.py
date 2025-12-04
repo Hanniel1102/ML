@@ -14,18 +14,18 @@ class ImagePreprocessor:
     """Xử lý tiền xử lý ảnh trước khi dự đoán"""
     
     def __init__(self):
-        self.min_sharpness = 30  # Ngưỡng độ nét tối thiểu
+        self.min_sharpness = 20  # Ngưỡng độ nét tối thiểu (giảm từ 30)
         
         # === NGƯỠNG CÂN BẰNG: Chấp nhận lá bệnh NHƯNG từ chối động vật ===
-        self.min_green_ratio = 0.05  # 5% - rất thấp cho lá bị bệnh nặng
-        self.min_leaf_ratio = 0.12   # 12% - vegetation tổng (xanh + vàng + nâu + bóng)
+        self.min_green_ratio = 0.02  # 2% - rất thấp cho lá bị bệnh nặng (giảm từ 5%)
+        self.min_leaf_ratio = 0.08   # 8% - vegetation tổng (giảm từ 12%)
         
         # Shape score - QUAN TRỌNG để phân biệt lá và động vật
-        self.min_leaf_shape_score = 0.42  # Lá dài (aspect 1.5-3), động vật tròn (aspect ~1)
+        self.min_leaf_shape_score = 0.30  # Nới lỏng (giảm từ 0.42)
         
         # Texture score - Gân lá vs lông động vật
-        self.min_texture_score = 0.28     # Texture cơ bản
-        self.excellent_texture_score = 0.50  # Texture xuất sắc (bù đắp cho màu thấp)
+        self.min_texture_score = 0.20     # Texture cơ bản (giảm từ 0.28)
+        self.excellent_texture_score = 0.40  # Texture xuất sắc (giảm từ 0.50)
         
         self.adaptive_mode = True  # Tự động điều chỉnh ngưỡng dựa trên điều kiện ảnh
         
@@ -337,6 +337,14 @@ class ImagePreprocessor:
         # Tính tỷ lệ độ bão hòa cao (màu sắc rõ ràng)
         high_saturation_ratio = np.sum(s > sat_threshold) / s.size
         
+        # PHÁT HIỆN MÀU XÁM (vải, thú nhồi bông, đồ vật không màu)
+        # Màu xám: saturation thấp (< 30), không phân biệt hue
+        gray_mask = cv2.inRange(hsv, (0, 0, 30), (180, 30, 200))  # Low saturation = gray
+        gray_ratio = np.sum(gray_mask > 0) / gray_mask.size
+        
+        # Tính độ bão hòa trung bình (lá có màu rõ, xám có saturation thấp)
+        mean_saturation = np.mean(s)
+        
         return {
             'green_ratio': float(green_ratio),
             'yellow_ratio': float(yellow_ratio),
@@ -346,6 +354,8 @@ class ImagePreprocessor:
             'shadow_ratio': float(shadow_ratio),  # NEW: Tỷ lệ bóng
             'leaf_ratio': float(leaf_ratio),  # Tổng vegetation bao gồm bệnh + bóng
             'high_saturation_ratio': float(high_saturation_ratio),
+            'gray_ratio': float(gray_ratio),  # NEW: Tỷ lệ màu xám
+            'mean_saturation': float(mean_saturation),  # NEW: Độ bão hòa TB
             'is_dark_image': is_dark,
             'mean_brightness': float(mean_brightness)
         }
@@ -410,6 +420,30 @@ class ImagePreprocessor:
         canny_high = 100 if is_dark else 150
         edges = cv2.Canny(gray_enhanced, canny_low, canny_high)
         contours_detected, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Fallback: nếu không có contour từ Canny (lá mờ/rách), thử segmentation theo màu
+        if not contours_detected or len(contours_detected) == 0:
+            try:
+                # Dùng LeafDetector segment nếu có (giúp lấy vùng lá dù bị bệnh)
+                leaf_detector = LeafDetector()
+                seg = leaf_detector.segment_leaf(image)
+                mask = seg[1] if isinstance(seg, tuple) else None
+                if mask is not None:
+                    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    if cnts:
+                        contours_detected = cnts
+                        # regenerate edges for diagnostics
+                        edges = cv2.Canny(cv2.cvtColor(cv2.bitwise_and(image, image, mask=mask), cv2.COLOR_BGR2GRAY),
+                                          canny_low, canny_high)
+            except Exception:
+                # Nếu không có LeafDetector hoặc lỗi, thử threshold trên ảnh tăng cường
+                try:
+                    _, th = cv2.threshold(gray_enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                    cnts, _ = cv2.findContours(th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    if cnts:
+                        contours_detected = cnts
+                except Exception:
+                    contours_detected = []
         
         # === CHIẾN LƯỢC PHÂN TẦNG ===
         # Mục tiêu: Chấp nhận lá bệnh (màu thấp) NHƯNG từ chối động vật (shape + texture khác)
@@ -421,14 +455,14 @@ class ImagePreprocessor:
         # Bước 2: Phân loại dựa trên GÂN LÁ (ưu tiên cao nhất)
         has_shadow = color_dist.get('shadow_ratio', 0) >= 0.08
         
-        # Gân lá - tiêu chí chính
-        has_veins = texture_score >= 0.25              # Có gân lá cơ bản
-        has_strong_veins = texture_score >= 0.40       # Gân lá rõ ràng
-        has_excellent_veins = texture_score >= 0.60    # Gân lá xuất sắc
+        # Gân lá - tiêu chí chính (NỚI LỎNG để chấp nhận lá thật)
+        has_veins = texture_score >= 0.15              # Gân lá cơ bản (giảm từ 0.25)
+        has_strong_veins = texture_score >= 0.30       # Gân lá rõ ràng (giảm từ 0.40)
+        has_excellent_veins = texture_score >= 0.45    # Gân lá xuất sắc (giảm từ 0.60)
         
-        # Gân lá chi tiết
+        # Gân lá chi tiết - yêu cầu thấp hơn
         has_vein_structure = (vein_analysis['vein_density'] >= 0.05 and 
-                             vein_analysis['num_lines'] >= 10)
+                             vein_analysis['num_lines'] >= 6)
         
         # Shape - bổ trợ
         has_good_shape = leaf_shape_score >= self.min_leaf_shape_score
@@ -440,46 +474,80 @@ class ImagePreprocessor:
         
         # === 7 TRƯỜNG HỢP CHẤP NHẬN - ƯU TIÊN GÂN LÁ ===
         
-        # 1. LÁ KHỎE: Xanh + gân lá hoặc shape
-        case_healthy = (color_dist['green_ratio'] >= min_green and 
-                       (has_veins or has_good_shape))
+        # === KIỂM TRA BẮT BUỘC 3: GÂN LÁ PHẢI CÓ CẤU TRÚC PHÂN NHÁNH RÕ RÀNG ===
+        # Vải/điện thoại/tay có texture nhưng KHÔNG có đường gân phân nhánh như lá
+        has_branching_veins = (vein_analysis['num_lines'] >= 4 and  # Ít nhất 4 đường gân (giảm từ 8)
+                              vein_analysis['angle_diversity'] >= 0.10)  # Góc đa dạng (giảm từ 0.18)
         
-        # 2. LÁ BỆNH NHẸ: Vegetation + gân lá hoặc shape
-        case_diseased = (color_dist['leaf_ratio'] >= min_leaf and 
-                        color_dist['green_ratio'] >= 0.02 and
-                        (has_veins or has_good_shape))
+        # === KIỂM TRA BẮT BUỘC 1: PHẢI CÓ MÀU LÁ THỰC SỰ ===
+        # Bất kỳ vật thể nào (điện thoại, tay, vải, đồ vật) đều KHÔNG có màu vegetation
+        has_real_vegetation_color = (
+            color_dist['green_ratio'] >= 0.02 or  # Ít nhất 2% xanh lá (giảm từ 5%)
+            (color_dist['yellow_brown_ratio'] >= 0.05 and  # Hoặc 5% vàng/nâu (giảm từ 10%)
+             color_dist['leaf_ratio'] >= 0.08)  # VÀ tổng vegetation >= 8% (giảm từ 15%)
+        )
         
-        # 3. LÁ BỆNH NẶNG/RÁCH: ƯU TIÊN GÂN LÁ
-        # KEY: Chỉ cần gân lá rõ + một chút vegetation, bỏ qua shape
-        case_severely_diseased = (has_strong_veins and  # Gân lá rõ ràng
-                                 color_dist['leaf_ratio'] >= 0.10 and  # Vegetation thấp OK
-                                 (color_dist['green_ratio'] >= 0.02 or  # Chút xanh
-                                  color_dist['yellow_brown_ratio'] >= 0.05))  # Hoặc vàng/nâu
+        if not has_real_vegetation_color:
+            details['is_leaf'] = False
+            details['recommendation'] = "KHÔNG PHẢI ẢNH LÁ CÂY - Không có màu vegetation (có thể là điện thoại, tay, vật thể)"
+            return False, details
         
-        # 4. LÁ CÓ BÓNG: Gân lá + bóng + chút màu
+        # === KIỂM TRA BẮT BUỘC 2: LOẠI TRỪ MÀU XÁM ===
+        # CHÚ Ý: Chỉ reject nếu KHÔNG có gân lá RÕ RÀNG
+        # Vì ảnh lá trên nền xám sẽ có gray_ratio cao nhưng vẫn có gân lá
+        is_gray_object = (
+            color_dist['gray_ratio'] >= 0.60 and  # >= 60% pixel xám (tăng từ 25% để cho phép nền xám)
+            color_dist['mean_saturation'] < 30 and  # Độ bão hòa TB < 30 (giảm từ 40)
+            texture_score < 0.30  # VÀ không có gân lá rõ
+        )
+        
+        if is_gray_object:
+            details['is_leaf'] = False
+            details['recommendation'] = "KHÔNG PHẢI ẢNH LÁ CÂY - Vật thể màu xám (thú nhồi bông, vải, đồ vật)"
+            return False, details
+        
+        # 1. LÁ KHỎE: Xanh + gân lá
+        case_healthy = (color_dist['green_ratio'] >= 0.05 and  # Giảm từ 0.08
+                       has_veins)
+        
+        # 2. LÁ BỆNH NHẸ: Vegetation + gân lá
+        case_diseased = (color_dist['leaf_ratio'] >= 0.08 and  # Giảm từ 0.15
+                        color_dist['green_ratio'] >= 0.02 and  # Giảm từ 0.04
+                        has_veins)
+        
+        # 3. LÁ BỆNH NẶNG/RÁCH: Gân rõ + màu vegetation
+        case_severely_diseased = (has_strong_veins and  # Gân >= 0.30
+                                 color_dist['leaf_ratio'] >= 0.06 and  # Giảm từ 0.12
+                                 (color_dist['green_ratio'] >= 0.01 or  # Giảm từ 0.03
+                                  color_dist['yellow_brown_ratio'] >= 0.03))  # Giảm từ 0.08
+        
+        # 4. LÁ CÓ BÓNG: Gân + bóng + màu
         case_shadow = (has_shadow and 
-                      has_veins and  # Chỉ cần gân lá cơ bản
-                      color_dist['green_ratio'] >= 0.02)
+                      has_veins and
+                      color_dist['green_ratio'] >= 0.01)  # Giảm từ 0.03
         
-        # 5. LÁ BỊ SÂU ĂN: Gân lá xuất sắc (bù đắp mọi thứ)
-        # Gân lá rất rõ → chắc chắn là lá
-        case_damaged = (has_excellent_veins and  # Vein score ≥ 0.60
-                       color_dist['green_ratio'] >= 0.01)  # Chỉ cần 1% xanh
+        # 5. LÁ BỊ SÂU ĂN: Gân xuất sắc + chút màu
+        case_damaged = (has_excellent_veins and  # Vein >= 0.45
+                       color_dist['green_ratio'] >= 0.01)  # Giảm từ 0.02
         
-        # 6. CÓ CẤU TRÚC GÂN: Phát hiện được nhiều đường gân phân nhánh
-        # Trường hợp mới dựa hoàn toàn vào gân lá
-        case_vein_structure = (has_vein_structure and  # Vein density + lines
-                              color_dist['leaf_ratio'] >= 0.08 and  # Vegetation tối thiểu
-                              vein_analysis['angle_diversity'] >= 0.3)  # Phân nhánh
+        # 6. CÓ CẤU TRÚC GÂN RÕ: Nhiều đường gân + màu
+        case_vein_structure = (has_vein_structure and  # Density + lines >= 6
+                              color_dist['leaf_ratio'] >= 0.05)  # Giảm từ 0.10
         
-        # 7. LÁ NHỎ/MẢM LÁ: Shape xuất sắc + gân lá
-        case_small = (has_excellent_shape and 
+        # 7. LÁ NHỎ/MẢM LÁ: Shape + gân + màu
+        case_small = (has_good_shape and
                      has_veins and
-                     color_dist['green_ratio'] >= 0.02)
+                     color_dist['green_ratio'] >= 0.02)  # Giảm từ 0.04
+        
+        # 8. GÂN RẤT RÕ: Gân mạnh + texture + màu
+        case_strong_vein_only = (has_strong_veins and  # Vein >= 0.30
+                                texture_score >= 0.30 and  # Giảm từ 0.45
+                                color_dist['green_ratio'] >= 0.01)  # Giảm từ 0.03
         
         # === QUYẾT ĐỊNH CUỐI CÙNG ===
         is_valid_leaf = (case_healthy or case_diseased or case_severely_diseased or 
-                        case_shadow or case_damaged or case_vein_structure or case_small)
+                        case_shadow or case_damaged or case_vein_structure or case_small or
+                        case_strong_vein_only)
         
         # Lưu chi tiết
         details['has_enough_green'] = is_valid_leaf
@@ -496,6 +564,7 @@ class ImagePreprocessor:
             'shadow' if case_shadow else
             'damaged' if case_damaged else
             'small' if case_small else
+            'strong_vein_only' if case_strong_vein_only else
             'none'
         )
         details['adaptive_green_threshold'] = min_green
@@ -587,10 +656,22 @@ class ImagePreprocessor:
         details['supporting_passed'] = supporting_passed
         details['confidence'] = confidence
         
-        # Acceptance: Core PHẢI pass + ít nhất 40% supporting (ảnh tối) hoặc 50% (ảnh sáng)
-        acceptance_threshold = 0.40 if is_dark else 0.50
-        supporting_check_passed = supporting_passed >= (len(supporting_checks) * acceptance_threshold)
-        
+        # Acceptance: Core PHẢI pass + supporting checks
+        # Nếu vein_score hoặc leaf_shape_score tốt, chấp nhận lỏng hơn (dùng cho lá bệnh/rách)
+        acceptance_threshold = 0.30 if is_dark else 0.40  # Giảm từ 0.40/0.50
+
+        # Leniency conditions
+        vein_score_val = details.get('texture_score', 0)
+        shape_score_val = details.get('leaf_shape_score', 0)
+
+        if core_check_passed and (vein_score_val >= 0.35 or shape_score_val >= 0.40):  # Giảm từ 0.45/0.50
+            # Nếu đặc trưng gân hoặc hình dạng tốt, giảm yêu cầu supporting xuống còn 20%
+            supporting_needed = max(1, int(len(supporting_checks) * 0.20))
+        else:
+            supporting_needed = int(len(supporting_checks) * acceptance_threshold)
+
+        supporting_check_passed = supporting_passed >= supporting_needed
+
         is_leaf = core_check_passed and supporting_check_passed
         
         details['is_leaf'] = is_leaf
