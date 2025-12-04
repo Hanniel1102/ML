@@ -44,31 +44,26 @@ Mở trình duyệt và truy cập: **http://localhost:8000**
 
 ```
 Hocmaynangcao/
-├── 🔧 Core Application
-│   ├── app.py                          # FastAPI server
+├── ├── app.py                          # FastAPI server
 │   ├── image_preprocessing.py          # Tiền xử lý ảnh
 │   ├── leaf_detector.py                # Phát hiện lá (NEW)
 │   └── requirements.txt                # Dependencies
 │
-├── 🤖 AI Model
-│   ├── best_tomato_model.keras         # Model tối ưu v2.0
+├── ├── best_tomato_model.keras         # Model tối ưu v2.0
 │   └── models/
 │       ├── class_names.json
 │       └── model_info.json
 │
-├── 📊 Data
-│   ├── prediction_history.json
+├── |── prediction_history.json
 │   └── Tomato/                         # Dataset
 │       ├── Train/
 │       ├── Val/
 │       └── Test/
 │
-├── 🌐 Frontend
-│   └── templates/
+├── templates/
 │       └── index.html
 │
-└── 📓 Training
-    └── Code_demo_optimized.ipynb       # Training notebook v2.0
+└── Code_demo_optimized.ipynb       # Training notebook v2.0
 ```
 
 ## 🎯 Sử dụng
