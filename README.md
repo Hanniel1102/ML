@@ -8,8 +8,10 @@
 - 🍃 **Phát hiện tự động ảnh lá** - Từ chối ảnh không phải lá cây
 - 🔬 Dự đoán 6 loại bệnh với độ tin cậy cao (**95-96% accuracy**)
 - 📊 Top 5 dự đoán + phân tích chi tiết chất lượng ảnh
+- 🏥 **KHUYẾN NGHỊ CHĂM SÓC** - Hướng dẫn điều trị và phòng ngừa chi tiết cho từng bệnh
+- 💊 Gợi ý sản phẩm điều trị cụ thể (tên thuốc, liều lượng)
 - 🎨 Giao diện đẹp, responsive, thân thiện người dùng
-- 📜 Lịch sử dự đoán (100 kết quả gần nhất)
+- 📜 Lịch sử dự đoán (100 kết quả gần nhất) + **Xem chi tiết từng lần dự đoán**
 - 🖼️ Tiền xử lý ảnh thông minh (auto brightness, sharpening, CLAHE)
 - ✅ Kiểm tra đa tầng: gân lá, màu sắc, hình dạng, texture
 
@@ -53,22 +55,73 @@ source venv/bin/activate
 
 ### Bước 3: Cài đặt dependencies
 
+#### **Phương pháp 1: Cài đặt tất cả (Khuyến nghị)**
+
 ```bash
-# Cài đặt tất cả packages cần thiết
+# Cài đặt tất cả packages từ requirements.txt
 pip install -r requirements.txt
 ```
 
-**Chi tiết packages sẽ được cài:**
-- `fastapi==0.104.1` - Framework web API
-- `uvicorn==0.24.0` - ASGI server
-- `python-multipart==0.0.6` - Xử lý file upload
-- `tensorflow==2.15.0` - Deep Learning framework
-- `Pillow==10.1.0` - Xử lý ảnh
-- `numpy==1.24.3` - Tính toán số học
-- `opencv-python==4.8.1.78` - Computer vision
-- `matplotlib==3.8.0` - Visualization
+#### **Phương pháp 2: Cài đặt từng package**
 
-**Lưu ý:** Quá trình cài đặt có thể mất 5-10 phút tùy tốc độ mạng.
+Nếu gặp lỗi với phương pháp 1, cài từng package:
+
+```bash
+# 1. Web Framework
+pip install fastapi==0.104.1
+pip install uvicorn==0.24.0
+pip install python-multipart==0.0.6
+
+# 2. Deep Learning
+pip install tensorflow==2.15.0
+
+# 3. Image Processing
+pip install Pillow==10.1.0
+pip install opencv-python==4.8.1.78
+
+# 4. Numerical Computing
+pip install numpy==1.24.3
+
+# 5. Visualization (Optional)
+pip install matplotlib==3.8.0
+```
+
+#### **Phương pháp 3: Cài đặt với pip upgrade**
+
+Nếu có conflict về version:
+
+```bash
+# Upgrade pip trước
+pip install --upgrade pip
+
+# Cài đặt với option --upgrade
+pip install -r requirements.txt --upgrade
+```
+
+#### **Chi tiết packages sẽ được cài:**
+
+| Package | Version | Kích thước | Mô tả |
+|---------|---------|------------|-------|
+| `fastapi` | 0.104.1 | ~65 KB | Framework web API hiện đại |
+| `uvicorn` | 0.24.0 | ~60 KB | ASGI server (chạy FastAPI) |
+| `python-multipart` | 0.0.6 | ~30 KB | Xử lý file upload |
+| `tensorflow` | 2.15.0 | **~450 MB** | Deep Learning framework ⚠️ |
+| `Pillow` | 10.1.0 | ~3 MB | Xử lý ảnh PIL |
+| `numpy` | 1.24.3 | ~15 MB | Tính toán số học |
+| `opencv-python` | 4.8.1.78 | ~90 MB | Computer vision |
+| `matplotlib` | 3.8.0 | ~35 MB | Visualization (optional) |
+
+**Tổng dung lượng:** ~650-700 MB
+
+**Thời gian cài đặt:**
+- ⚡ Mạng nhanh (50+ Mbps): 5-10 phút
+- 🌐 Mạng trung bình (10-50 Mbps): 15-30 phút
+- 🐌 Mạng chậm (<10 Mbps): 30-60 phút
+
+**Lưu ý quan trọng:**
+- ⚠️ TensorFlow (~450 MB) là package lớn nhất
+- 💾 Cần ~2 GB dung lượng trống (bao gồm dependencies)
+- 🔧 Nếu có GPU NVIDIA, cài thêm: `pip install tensorflow[and-cuda]`
 
 ### Bước 4: Kiểm tra cài đặt
 
@@ -81,6 +134,42 @@ python -c "import tensorflow as tf; print(f'TensorFlow {tf.__version__}')"
 
 # Kiểm tra GPU (nếu có)
 python -c "import tensorflow as tf; print('GPU:', tf.config.list_physical_devices('GPU'))"
+
+# Kiểm tra tất cả packages
+python -c "import fastapi, uvicorn, tensorflow, PIL, cv2, numpy, matplotlib; print('✅ All packages installed successfully!')"
+```
+
+#### **Xử lý lỗi cài đặt thường gặp:**
+
+**Lỗi 1: "ERROR: Could not find a version that satisfies tensorflow==2.15.0"**
+```bash
+# Giải pháp: Cài TensorFlow phiên bản mới nhất
+pip install tensorflow
+```
+
+**Lỗi 2: "ImportError: DLL load failed" (Windows)**
+```bash
+# Giải pháp: Cài Visual C++ Redistributable
+# Tải tại: https://aka.ms/vs/17/release/vc_redist.x64.exe
+```
+
+**Lỗi 3: "ModuleNotFoundError: No module named 'cv2'"**
+```bash
+# Giải pháp: Cài lại opencv-python
+pip uninstall opencv-python
+pip install opencv-python==4.8.1.78
+```
+
+**Lỗi 4: Conflict giữa numpy và tensorflow**
+```bash
+# Giải pháp: Cài numpy tương thích
+pip install numpy==1.24.3 --force-reinstall
+```
+
+**Lỗi 5: Timeout khi cài TensorFlow**
+```bash
+# Giải pháp: Tăng timeout và dùng cache
+pip install tensorflow==2.15.0 --timeout=1000 --cache-dir ./pip_cache
 ```
 
 ### Bước 5: Chạy ứng dụng
@@ -121,26 +210,68 @@ Mở trình duyệt và truy cập: **http://localhost:8000**
 
 ```
 Hocmaynangcao/
-├── ├── app.py                          # FastAPI server
-│   ├── image_preprocessing.py          # Tiền xử lý ảnh
-│   ├── leaf_detector.py                # Phát hiện lá (NEW)
+├── ├──app.py                          # FastAPI server + Disease Info Database
+│   ├── image_preprocessing.py          # Tiền xử lý ảnh thông minh
+│   ├── leaf_detector.py                # Phát hiện lá cây
 │   └── requirements.txt                # Dependencies
 │
-├── ├── best_tomato_model.keras         # Model tối ưu v2.0
+├── ├── best_tomato_model.keras         # Model tối ưu v2.0 (95-96%)
 │   └── models/
 │       ├── class_names.json
 │       └── model_info.json
 │
-├── |── prediction_history.json
+├── ├── prediction_history.json         # Lưu lịch sử + disease_info
 │   └── Tomato/                         # Dataset
 │       ├── Train/
 │       ├── Val/
 │       └── Test/
 │
-├── templates/
-│       └── index.html
+├── ├── templates/
+│       └── index.html                  # UI + Disease Recommendations
 │
-└── Code_demo_optimized.ipynb       # Training notebook v2.0
+└── ├── Code_demo_optimized.ipynb       # Training notebook v2.0
+```
+
+## 🏥 Hệ Thống Khuyến Nghị Chăm Sóc (NEW!)
+
+### Database 6 loại bệnh với thông tin chi tiết:
+
+1. **Bacterial Spot** (Đốm Lá Vi Khuẩn) - 🔴 Cao
+2. **Early Blight** (Bệnh Héo Sớm) - 🟡 Trung bình-Cao
+3. **Healthy** (Lá Khỏe Mạnh) - ✅ Không bệnh
+4. **Late Blight** (Bệnh Mốc Sương) - 🔴 RẤT CAO ⚠️
+5. **Septoria Leaf Spot** (Đốm Lá Septoria) - 🟡 Trung bình
+6. **Yellow Leaf Curl Virus** (Virus Cuộn Lá Vàng) - 🔴 Rất Cao
+
+### Mỗi bệnh bao gồm:
+
+- 📖 **Mô tả chi tiết** - Nguyên nhân, đặc điểm bệnh
+- 🔍 **Triệu chứng** - 4-5 dấu hiệu nhận biết
+- ⚠️ **Xử lý khẩn cấp** - Hành động trong 24-48 giờ
+- 📅 **Điều trị ngắn hạn** - Kế hoạch 1-4 tuần
+- 🌱 **Giải pháp dài hạn** - Phòng ngừa 2-12 tháng
+- 🦠 **Nguyên nhân gây bệnh** - Điều kiện thuận lợi
+- 🛡️ **Biện pháp phòng ngừa** - Thực hành tốt nhất
+- 💊 **Sản phẩm khuyên dùng** - Tên thuốc cụ thể (Ridomil Gold, Daconil, Imidacloprid...)
+
+### Ví dụ khuyến nghị:
+
+**Late Blight (Mốc Sương) - Nguy hiểm nhất:**
+```
+🚨 KHẨN CẤP: Nhổ bỏ cây bệnh ngay lập tức!
+🔥 Đốt hoặc chôn sâu (không compost)
+💊 Phun Ridomil Gold (Metalaxyl + Mancozeb) NGAY
+🚧 Cách ly khu vực bệnh, không đi lại
+📅 Phun thuốc 5-7 ngày/lần trong 3 tuần
+🌱 Trồng giống kháng bệnh (Defiant PHR, Matt's Wild Cherry)
+```
+
+**Healthy (Khỏe mạnh):**
+```
+✅ Duy trì chế độ chăm sóc hiện tại
+🌿 Kiểm tra định kỳ để phát hiện sớm bệnh
+💧 Tưới nước đều đặn, tránh khô hạn
+🌞 Đảm bảo đủ ánh sáng (6-8 giờ/ngày)
 ```
 
 ## 🎯 Sử dụng
@@ -163,8 +294,13 @@ Hocmaynangcao/
 ### Xem lịch sử
 
 1. Click tab **"📜 Lịch sử"**
-2. Xem các lần dự đoán trước
-3. Có thể xóa từng item hoặc xóa toàn bộ
+2. Xem các lần dự đoán trước (thumbnail, tên bệnh, độ tin cậy, thời gian)
+3. **Click vào bất kỳ item nào** để xem chi tiết đầy đủ:
+   - Ảnh gốc kích thước lớn
+   - Top 5 dự đoán với thanh progress
+   - Thông tin bệnh + khuyến nghị chăm sóc đầy đủ
+   - Metadata: thời gian, file, vein score
+4. Có thể xóa từng item (nút 🗑️) hoặc xóa toàn bộ
 
 ## 🔬 Công nghệ Sử dụng
 
@@ -234,12 +370,28 @@ Dự đoán bệnh từ ảnh
         "type": "diseased_leaf",
         "green_ratio": 45.23,
         "recommendation": "Ảnh đạt chất lượng tốt"
+    },
+    "disease_info": {
+        "name_vi": "Bệnh Héo Sớm",
+        "severity": "Trung bình - Cao",
+        "description": "Bệnh do nấm Alternaria solani...",
+        "symptoms": ["Đốm tròn có vòng đồng tâm..."],
+        "treatment": {
+            "immediate": ["Cắt bỏ lá bệnh..."],
+            "shortterm": ["Phun thuốc 7 ngày/lần..."],
+            "longterm": ["Cải tạo đất..."]
+        },
+        "prevention": [...],
+        "products": ["Daconil", "Mancozeb", "Azoxystrobin"]
     }
 }
 ```
 
 ### `GET /history`
-Lấy lịch sử dự đoán
+Lấy lịch sử dự đoán (tất cả items)
+
+### `GET /history/{item_id}` ⭐ NEW
+Lấy chi tiết một item trong lịch sử (bao gồm disease_info, top_predictions)
 
 ### `DELETE /history/{item_id}`
 Xóa một item trong lịch sử
@@ -309,17 +461,20 @@ EPOCHS_STAGE2 = 20
 - Focus rõ, tránh ảnh mờ
 - Chỉ upload ảnh lá cây thật
 
-## 📊 So sánh Model v1.0 vs v2.0
+## 📊 So sánh Model v1.0 vs v2.0 vs v2.1
 
-| Metric | v1.0 | v2.0 | Cải thiện |
-|--------|------|------|-----------|
-| Test Accuracy | 92.3% | **95.6%** | **+3.3%** ⬆️ |
-| Top-3 Accuracy | 97.8% | **98.9%** | **+1.1%** ⬆️ |
-| F1-Score (avg) | 0.918 | **0.953** | **+0.035** ⬆️ |
-| Model Size | 16 MB | 55 MB | +39 MB |
-| Inference | ~100ms | ~150ms | +50ms |
+| Metric | v1.0 | v2.0 | v2.1 (Current) | Cải thiện |
+|--------|------|------|----------------|-----------|
+| Test Accuracy | 92.3% | 95.6% | **95.6%** | **+3.3%** ⬆️ |
+| Top-3 Accuracy | 97.8% | 98.9% | **98.9%** | **+1.1%** ⬆️ |
+| F1-Score (avg) | 0.918 | 0.953 | **0.953** | **+0.035** ⬆️ |
+| Model Size | 16 MB | 55 MB | 55 MB | +39 MB |
+| Inference | ~100ms | ~150ms | ~150ms | +50ms |
+| **Disease Info** | ❌ | ❌ | **✅ 6 diseases** | **NEW!** |
+| **Care Recommendations** | ❌ | ❌ | **✅ Full guide** | **NEW!** |
+| **History Detail View** | ❌ | ❌ | **✅ Modal popup** | **NEW!** |
 
-**7 Cải tiến chính:**
+**10 Tính năng nổi bật:**
 1. MixUp Augmentation - Tăng tính tổng quát
 2. Spatial Attention - Tập trung vào vùng bệnh
 3. Two-Stage Training - Fine-tune hiệu quả
@@ -327,6 +482,9 @@ EPOCHS_STAGE2 = 20
 5. Enhanced Architecture - Dense layers tốt hơn
 6. Advanced Augmentation - 7 techniques thay vì 4
 7. Test-Time Augmentation - Tăng accuracy inference
+8. **🏥 Disease Care Database - 6 bệnh với hướng dẫn chi tiết** ⭐ NEW
+9. **💊 Product Recommendations - Tên thuốc cụ thể** ⭐ NEW
+10. **📋 History Detail Modal - Xem lại kết quả cũ** ⭐ NEW
 
 ## 🚀 Deploy
 
@@ -354,6 +512,27 @@ MIT License - Free to use for educational and research purposes
 - CBAM: Woo et al. (2018)
 - Dataset: PlantVillage Project
 
+## 🎁 Điểm Nổi Bật v2.1 (December 5, 2025)
+
+### 🏥 Disease Care System
+- **Database chuyên nghiệp**: 6 bệnh với 500+ dòng hướng dẫn chi tiết
+- **3-tier treatment plan**: Immediate → Short-term → Long-term
+- **Severity indicators**: 🔴 Cao, 🟡 Trung bình, 🟢 Thấp, ✅ Khỏe
+- **Product recommendations**: Tên thương mại cụ thể (Ridomil Gold, Daconil, Actara...)
+- **Visual UI**: Color-coded badges, collapsible sections, responsive design
+
+### 📋 Interactive History
+- **Click-to-view**: Mỗi lịch sử giờ có thể click để xem chi tiết
+- **Modal popup**: Hiển thị đầy đủ ảnh gốc, top predictions, disease info
+- **Smart navigation**: ESC key, click outside, X button
+- **Preserved data**: Lưu disease_info và top_predictions trong history.json
+
+### 💡 Use Cases
+1. **Nông dân**: Chụp ảnh → Nhận hướng dẫn điều trị ngay lập tức
+2. **Nhà nghiên cứu**: Theo dõi diễn biến bệnh qua lịch sử
+3. **Giáo dục**: Học sinh/sinh viên học về bệnh cây trồng
+4. **Cửa hàng thuốc**: Tư vấn sản phẩm phù hợp cho khách hàng
+
 ---
 
-**Version 2.0** - December 2025 | **Status:** Production Ready ✅ | **Accuracy:** 95-96% 🎯
+**Version 2.1** - December 5, 2025 | **Status:** Production Ready ✅ | **Accuracy:** 95-96% 🎯 | **NEW:** Disease Care System 🏥
