@@ -444,14 +444,12 @@ async def load_model_startup():
     
     print("🚀 Đang khởi động server...")
     
-    # Tìm và load model (ưu tiên model .h5)
+    # Tìm và load model (chỉ file .h5)
     model_paths = [
         "best_tomato_model.h5",  # Model .h5 mới nhất
-        "best_tomato_model.keras",  # Model tối ưu mới nhất
-        "test_model.keras",  # Model test
-        "models/final_model.keras",
-        "models/best_model.keras",
-        "models/best_model.h5"
+        "Tomato_EfficientNetB0_Final.h5",  # Model .h5 backup
+        "models/best_model.h5",
+        "model.h5"
     ]
     
     # Define custom layers cho model tối ưu
@@ -507,30 +505,22 @@ async def load_model_startup():
             try:
                 print(f"🔄 Đang load model từ: {model_path}")
                 
-                # Xử lý riêng cho file .h5 và .keras
-                if model_path.endswith('.h5'):
-                    # Load model .h5 với custom objects
-                    try:
-                        loaded_model = keras.models.load_model(
-                            model_path, 
-                            custom_objects=custom_objects,
-                            compile=False
-                        )
-                        print(f"✅ Đã load model .h5 thành công")
-                    except:
-                        # Fallback: dùng tf.keras
-                        loaded_model = tf.keras.models.load_model(
-                            model_path, 
-                            custom_objects=custom_objects,
-                            compile=False
-                        )
-                else:
-                    # Load model .keras
-                    try:
-                        loaded_model = keras.models.load_model(model_path, compile=False, custom_objects=custom_objects)
-                    except:
-                        # Fallback: dùng tf.keras
-                        loaded_model = tf.keras.models.load_model(model_path, compile=False, custom_objects=custom_objects)
+                # Load model .h5 với custom objects
+                try:
+                    loaded_model = keras.models.load_model(
+                        model_path, 
+                        custom_objects=custom_objects,
+                        compile=False
+                    )
+                    print(f"✅ Đã load model .h5 thành công")
+                except Exception as load_error:
+                    # Fallback: dùng tf.keras
+                    print(f"⚠️ Thử fallback với tf.keras...")
+                    loaded_model = tf.keras.models.load_model(
+                        model_path, 
+                        custom_objects=custom_objects,
+                        compile=False
+                    )
                 
                 model = loaded_model
                 print(f"✅ Đã load model: {model_path}")
