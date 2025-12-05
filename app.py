@@ -682,7 +682,7 @@ async def predict(file: UploadFile = File(...)):
                 })
 
         # --- Additional safeguard ---
-        # Kiểm tra phụ để giảm false-positives, nhưng ưu tiên vein_score hơn
+        # Kiểm tra bổ sung để chặn động vật và đồ vật
         details = result.get('details', {})
         
         # Lấy các chỉ số quan trọng
@@ -691,34 +691,54 @@ async def predict(file: UploadFile = File(...)):
         green_ratio = float(details.get('green_ratio', 0))
         leaf_shape_score = float(details.get('leaf_shape_score', 0))
         
-        # Configurable thresholds via env vars
+        # Configurable thresholds - TĂNG THRESHOLD để chặn động vật CHẮC CHẮN
         MIN_VEIN_SCORE = float(os.environ.get('MIN_VEIN_SCORE', '0.20'))
-        MIN_GREEN_RATIO = float(os.environ.get('MIN_GREEN_RATIO', '0.01'))
+        MIN_GREEN_RATIO = float(os.environ.get('MIN_GREEN_RATIO', '0.15'))  # Tăng lên 15%
+        MIN_LEAF_SHAPE = float(os.environ.get('MIN_LEAF_SHAPE', '0.15'))
         
-        # CHIẾN LƯỢC MỚI: Chặn chỉ khi CẢ HAI điều kiện sau đều THẤT BẠI:
-        # 1. Không có gân lá rõ (vein_score < 0.20)
-        # 2. Không có màu xanh hoặc vegetation (green_ratio < 1%)
-        # => Điều này tránh chặn lá thật có gân rõ hoặc có màu xanh
+        # CHIẾN LƯỢC CHẶT CHẼ NHẤT:
+        # Phải có CẢ 3 điều kiện HOẶC có green_ratio rất cao (>30%):
+        # 1. Có gân lá rõ (vein_score >= 0.20)
+        # 2. Có màu xanh thực vật (green_ratio >= 15%)
+        # 3. Có hình dạng lá (leaf_shape_score >= 0.15)
         
         has_vein_structure = vein_score >= MIN_VEIN_SCORE
         has_vegetation = green_ratio >= MIN_GREEN_RATIO
-        has_reasonable_shape = leaf_shape_score >= 0.15
+        has_reasonable_shape = leaf_shape_score >= MIN_LEAF_SHAPE
+        has_high_green = green_ratio >= 0.30  # Lá thật thường có >30% màu xanh
         
-        # Chỉ từ chối nếu KHÔNG có gì giống lá cả
-        is_likely_not_leaf = (not has_vein_structure and 
-                              not has_vegetation and 
-                              not has_reasonable_shape)
+        # Đếm số điều kiện thỏa mãn
+        leaf_conditions_met = sum([has_vein_structure, has_vegetation, has_reasonable_shape])
+        
+        # Từ chối nếu:
+        # - Có ít hơn 2 điều kiện HOẶC
+        # - Không có màu xanh cao (động vật, người, đồ vật)
+        is_likely_not_leaf = (leaf_conditions_met < 2) or (not has_vegetation and not has_high_green)
         
         # Allow override
         FORCE_PREDICT = os.environ.get('FORCE_PREDICT_ON_WEAK_LEAF', '0') == '1'
         
         if not FORCE_PREDICT and is_likely_not_leaf:
             # Return structured rejection with analysis
+            rejection_reasons = []
+            if not has_vein_structure:
+                rejection_reasons.append("không phát hiện gân lá")
+            if not has_vegetation:
+                rejection_reasons.append("thiếu màu xanh thực vật (<15%)")
+            if not has_reasonable_shape:
+                rejection_reasons.append("không có hình dạng lá")
+            
+            # Thông báo cụ thể cho động vật
+            if green_ratio < 0.10:
+                message = "🚫 Đây không phải ảnh lá cây! Vui lòng chỉ upload ảnh lá cà chua."
+            else:
+                message = f"⚠️ Ảnh không đạt tiêu chuẩn lá cây ({', '.join(rejection_reasons)})"
+            
             return JSONResponse({
                 "success": False,
                 "error": "LOW_LEAF_CONFIDENCE",
-                "message": "Ảnh có vẻ không phải lá cây (không có gân lá, không có màu xanh, không có hình dạng lá)",
-                "recommendation": "Vui lòng chụp lại ảnh lá rõ ràng hơn",
+                "message": message,
+                "recommendation": "Vui lòng chụp ảnh lá cà chua rõ nét, đủ ánh sáng, lấp đầy khung hình",
                 "analysis": {
                     "vein_score": round(vein_score, 3),
                     "green_ratio": round(green_ratio * 100, 2),
@@ -726,7 +746,10 @@ async def predict(file: UploadFile = File(...)):
                     "main_object_ratio": round(main_obj_ratio, 4),
                     "has_vein_structure": has_vein_structure,
                     "has_vegetation": has_vegetation,
-                    "has_reasonable_shape": has_reasonable_shape
+                    "has_reasonable_shape": has_reasonable_shape,
+                    "has_high_green": has_high_green,
+                    "conditions_met": leaf_conditions_met,
+                    "minimum_required": 2
                 }
             })
         
