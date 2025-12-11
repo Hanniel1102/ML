@@ -210,26 +210,110 @@ Mở trình duyệt và truy cập: **http://localhost:8000**
 
 ```
 Hocmaynangcao/
-├── ├──app.py                          # FastAPI server + Disease Info Database
-│   ├── image_preprocessing.py          # Tiền xử lý ảnh thông minh
-│   ├── leaf_detector.py                # Phát hiện lá cây
-│   └── requirements.txt                # Dependencies
 │
-├── ├── best_tomato_model.keras         # Model tối ưu v2.0 (95-96%)
-│   └── models/
-│       ├── class_names.json
-│       └── model_info.json
+├── 🚀 PRODUCTION (Inference - Dự đoán)
+│   ├── app.py                              # ⭐ FastAPI server + Disease Info Database
+│   ├── efficientnet_preprocessor.py        # ⭐ Preprocessing 6 bước (Resize→Analyze→CLAHE→Denoise→Sharpen→Normalize)
+│   ├── image_preprocessing.py              # ⭐ Validate ảnh lá (LeafDetector, vein detection, quality check)
+│   ├── image_analysis.py                   # ⭐ Phân tích đặc trưng lá (shape, color, texture, veins)
+│   ├── templates/index.html                # ⭐ Web UI (upload, camera, 6-step preprocessing display)
+│   ├── best_tomato_model.keras             # ⭐ Model EfficientNetB0 + Spatial Attention (95-96%)
+│   ├── best_tomato_model.h5                # Model backup format
+│   ├── prediction_history.json             # Lịch sử dự đoán (100 items)
+│   └── requirements.txt                    # Dependencies
 │
-├── ├── prediction_history.json         # Lưu lịch sử + disease_info
-│   └── Tomato/                         # Dataset
-│       ├── Train/
-│       ├── Val/
-│       └── Test/
+├── 📊 TRAINING (Chuẩn bị data + Train model)
+│   ├── data_raw.py                         # ⭐ Tạo ảnh XẤU (10 degradation types: noise/blur/dark/motion/contrast/jpeg)
+│   ├── data_preprocessing.py               # ⭐ SỬA ảnh xấu về tốt (denoise→brightness→contrast→sharpen)
+│   ├── train_model_h5.ipynb                # ⭐ Notebook train model chính
+│   ├── Code_demo.ipynb                     # Notebook demo cũ
+│   └── Code_demo_optimized.ipynb           # Notebook demo đã optimize
 │
-├── ├── templates/
-│       └── index.html                  # UI + Disease Recommendations
+├── 📂 DATASET
+│   └── Tomato/
+│       ├── Train/                          # Dataset training (6 classes)
+│       ├── Val/                            # Dataset validation
+│       ├── Test/                           # Dataset testing
+│       └── Augmented_Train/                # Dataset XẤU (từ data_raw.py) - Optional
 │
-└── ├── Code_demo_optimized.ipynb       # Training notebook v2.0
+└── 📄 DOCUMENTS
+    ├── README.md                           # File này
+    ├── Báo cáo Học máy nâng cao.docx       # Báo cáo project
+    └── Báo cáo Học máy nâng cao.pdf        # Báo cáo PDF
+```
+
+### 🔄 Luồng hoạt động
+
+#### **A. INFERENCE (Dự đoán - Production)**
+
+```mermaid
+User upload ảnh
+    ↓
+app.py (FastAPI)
+    ↓
+1. image_preprocessing.py
+   └─→ Validate ảnh lá (LeafDetector)
+   └─→ Kiểm tra: gân lá, màu sắc, hình dạng
+   └─→ ✅ PASS hoặc ❌ REJECT
+    ↓
+2. efficientnet_preprocessor.py
+   └─→ Bước 1: Resize (224x224)
+   └─→ Bước 2: Analyze (brightness, contrast, noise, edge)
+   └─→ Bước 3: CLAHE (nếu contrast < 40)
+   └─→ Bước 4: Denoise (nếu noise < 500)
+   └─→ Bước 5: Sharpen (nếu edge < 50)
+   └─→ Bước 6: Normalize (ImageNet mean/std)
+    ↓
+3. Model Prediction
+   └─→ best_tomato_model.keras
+   └─→ EfficientNetB0 + Spatial Attention
+   └─→ Output: 6 class probabilities
+    ↓
+4. image_analysis.py (Parallel)
+   └─→ Phân tích shape, color, texture
+   └─→ Generate visualizations
+   └─→ Calculate leaf_score
+    ↓
+5. Response to User
+   └─→ Top 5 predictions
+   └─→ Disease info + Treatment recommendations
+   └─→ 6-step preprocessing images
+   └─→ Analysis results
+```
+
+#### **B. TRAINING (Train model mới)**
+
+```mermaid
+1. data_raw.py
+   └─→ Input: Tomato/Train (ảnh gốc sạch)
+   └─→ Process: Tạo 10 loại degradation
+       • noise_light, noise_heavy
+       • blur_light, blur_heavy
+       • dark, very_dark, bright
+       • motion_blur
+       • low_contrast
+       • jpeg_compress
+   └─→ Output: Tomato/Augmented_Train (ảnh XẤU)
+    ↓
+2. data_preprocessing.py
+   └─→ Input: Tomato/Augmented_Train (ảnh XẤU)
+   └─→ Process: PHỤC HỒI ảnh xấu
+       • Step 1: Denoise (khử nhiễu MẠNH)
+       • Step 2: Fix brightness (sửa tối/sáng → 135)
+       • Step 3: Fix contrast (CLAHE 2.8-3.5)
+       • Step 4: Sharpen (làm nét kernel 9-10)
+       • Step 5: Resize (256x256)
+   └─→ Output: Tomato/Fixed_Train (ảnh SẠCH, chất lượng tốt)
+    ↓
+3. train_model_h5.ipynb
+   └─→ Input: Tomato/Fixed_Train (hoặc Tomato/Train gốc)
+   └─→ Process:
+       • Load data with ImageDataGenerator
+       • Build: EfficientNetB0 + Spatial Attention
+       • Stage 1: Train frozen (15 epochs)
+       • Stage 2: Fine-tune all (15 epochs)
+       • Apply: MixUp, Class Weighting, TTA
+   └─→ Output: best_tomato_model.keras (95-96% accuracy)
 ```
 
 ## 🏥 Hệ Thống Khuyến Nghị Chăm Sóc (NEW!)
@@ -322,26 +406,106 @@ Hocmaynangcao/
 - **Fetch API** - Gọi API
 - **Canvas API** - Chụp ảnh từ camera
 
-## 🛠️ Module Tiền xử lý Thông minh
+## 🛠️ Chi tiết Module Xử lý
 
-File `image_preprocessing.py` bao gồm:
+### 📦 **1. efficientnet_preprocessor.py** (453 lines)
+**Chức năng**: Preprocessing 6 bước cho model inference
 
-### 1. Kiểm tra tính hợp lệ của ảnh
-- ✅ Phát hiện gân lá (vein detection)
-- ✅ Phân tích màu sắc (green, yellow, brown, shadow)
-- ✅ Phân tích hình dạng lá (aspect ratio, solidity)
-- ✅ Kiểm tra độ nét, độ sáng, độ tương phản
+**Pipeline:**
+1. **Step 1: Resize** - Resize về 224x224 (EfficientNetB0 input)
+2. **Step 2: Analyze** - Tính metrics: brightness, contrast, noise_variance, edge_strength
+3. **Step 3: CLAHE** - Tăng contrast nếu < 40 (adaptive histogram equalization)
+4. **Step 4: Denoise** - Khử nhiễu nếu variance < 500 (bilateral filter)
+5. **Step 5: Sharpen** - Làm nét nếu edge < 50 (unsharp masking)
+6. **Step 6: Normalize** - ImageNet normalization (mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
 
-### 2. Tăng cường chất lượng ảnh
-- Tự động điều chỉnh độ sáng (auto brightness)
-- Làm nét ảnh (sharpening)
-- Cân bằng histogram (CLAHE)
-- Khử nhiễu (denoising)
+**Output**: 6 ảnh (1 ảnh/bước) + summary JSON
 
-### 3. Xử lý đặc biệt
-- Hỗ trợ ảnh tối/quá sáng
-- Phát hiện lá bệnh, lá có bóng
-- Chấp nhận lá bị sâu ăn, lá rách
+---
+
+### 📦 **2. image_preprocessing.py** (1084 lines)
+**Chức năng**: Validate ảnh đầu vào có phải lá cây không
+
+**Class ImagePreprocessor:**
+- `is_leaf_image()` - Kiểm tra 8 tiêu chí:
+  - ✅ Phát hiện gân lá (vein detection - quan trọng nhất)
+  - ✅ Phân tích màu sắc (green, yellow, brown, dark_spots, shadow)
+  - ✅ Phân tích hình dạng lá (aspect ratio, solidity, circularity)
+  - ✅ Kiểm tra độ nét, độ sáng, độ tương phản
+  - ✅ Edge detection (Canny)
+  - ✅ Contour analysis
+  - ✅ Texture score
+  - ✅ Leaf shape score
+
+**Class LeafDetector:**
+- `segment_leaf()` - Tách lá khỏi background
+- `quick_check_leaf()` - Kiểm tra nhanh
+
+**Xử lý đặc biệt:**
+- ✅ Chấp nhận lá bệnh (vàng/nâu/đen)
+- ✅ Chấp nhận lá có bóng
+- ✅ Chấp nhận lá bị sâu ăn/rách
+- ✅ Auto-enhance ảnh tối
+
+---
+
+### 📦 **3. image_analysis.py** (566 lines)
+**Chức năng**: Phân tích chi tiết đặc trưng lá
+
+**Functions:**
+- `analyze_shape()` - Phân tích hình dạng (perimeter, convexity, roughness)
+- `analyze_color()` - Phân tích màu sắc HSV/LAB
+- `analyze_texture()` - Phân tích texture (LBP, Gabor filters, vein patterns)
+- `calculate_leaf_score()` - Tính điểm tổng hợp
+- `generate_processed_images()` - Tạo ảnh visualization (edge map, veins, histogram)
+
+**Output**: JSON với scores + 3 ảnh visualization
+
+---
+
+### 📦 **4. data_raw.py** (340 lines)
+**Chức năng**: Tạo dataset XẤU để test độ robust
+
+**10 degradation types:**
+1. `noise_light` - Gaussian noise nhẹ (factor=0.1)
+2. `noise_heavy` - Gaussian noise nặng (factor=0.3)
+3. `blur_light` - Gaussian blur nhẹ (kernel=5)
+4. `blur_heavy` - Gaussian blur nặng (kernel=15)
+5. `dark` - Giảm brightness 50%
+6. `very_dark` - Giảm brightness 70%
+7. `bright` - Tăng brightness 30%
+8. `motion_blur` - Motion blur (kernel=15)
+9. `low_contrast` - Giảm contrast 50%
+10. `jpeg_compress` - JPEG artifacts (quality=20)
+
+**Usage:**
+```python
+python data_raw.py
+# Input: Tomato/Train
+# Output: Tomato/Augmented_Train
+```
+
+---
+
+### 📦 **5. data_preprocessing.py** (452 lines)
+**Chức năng**: PHỤC HỒI ảnh xấu về chất lượng tốt
+
+**4 bước sửa chữa MẠNH:**
+1. **Fix Noise** - Bilateral filter d=7-9 (khử nhiễu trước tiên)
+2. **Fix Brightness** - Điều chỉnh về target=135 (sửa tối/sáng)
+3. **Fix Contrast** - CLAHE 2.8-3.5 (tăng contrast mạnh)
+4. **Fix Sharpness** - Unsharp masking kernel 9-10 (làm nét)
+
+**Mode:**
+- `aggressive_fix=True` - Sửa TẤT CẢ ảnh (đồng nhất chất lượng)
+- `aggressive_fix=False` - Chỉ sửa ảnh xấu (conditional)
+
+**Usage:**
+```python
+python data_preprocessing.py
+# Input: Tomato/Augmented_Train (ảnh XẤU)
+# Output: Tomato/Fixed_Train (ảnh SẠCH)
+```
 
 ## 🌐 API Endpoints
 
@@ -404,62 +568,195 @@ Kiểm tra trạng thái server
 
 ## 🎓 Train Model Mới
 
-### Yêu cầu
-- Python 3.11+, GPU với CUDA (khuyến nghị)
-- 8GB RAM, Dataset đúng cấu trúc
+### Quy trình ĐẦY ĐỦ
 
-### Training
+#### **Bước 1: Chuẩn bị Dataset (Optional - nếu muốn augmentation)**
+
+**1a. Tạo ảnh xấu (để test độ robust):**
+```bash
+python data_raw.py
+```
+- Input: `Tomato/Train/` (ảnh gốc sạch)
+- Output: `Tomato/Augmented_Train/` (ảnh nhiễu/mờ/tối)
+- Mục đích: Test xem model có học được từ ảnh chất lượng kém không
+
+**1b. Phục hồi ảnh xấu (sửa về tốt để train):**
+```bash
+python data_preprocessing.py
+```
+- Input: `Tomato/Augmented_Train/` (ảnh XẤU)
+- Output: `Tomato/Fixed_Train/` (ảnh đã SỬA - chất lượng tốt)
+- Mục đích: Train model với data sạch, đồng nhất
+
+**Lưu ý:**
+- ⚠️ Bước 1 là **OPTIONAL** - chỉ dùng nếu bạn muốn tạo augmented dataset
+- ✅ Có thể train trực tiếp với `Tomato/Train/` gốc (đã đủ tốt)
+- 💡 `data_raw.py` và `data_preprocessing.py` là 2 bước ngược nhau:
+  - `data_raw.py`: Làm XẤU dataset
+  - `data_preprocessing.py`: SỬA dataset xấu về tốt
+
+---
+
+#### **Bước 2: Train Model**
+
 ```bash
 # Mở notebook
-jupyter notebook Code_demo_optimized.ipynb
+jupyter notebook train_model_h5.ipynb
 
 # Hoặc chạy tất cả cells: Cell → Run All
 # Thời gian: 45-60 phút (GPU) hoặc 4-6 giờ (CPU)
 ```
 
-### Hyperparameters chính
-```python
-IMG_SIZE = 256
-BATCH_SIZE = 32          # Giảm xuống 16 nếu GPU OOM
-EPOCHS_STAGE1 = 15       # Frozen base
-EPOCHS_STAGE2 = 15       # Fine-tuning
-DROPOUT_RATE = 0.3       # Tăng lên 0.4 nếu overfitting
+### Cấu hình Training
 
-USE_MIXUP = True         # MixUp augmentation
-USE_ATTENTION = True     # Spatial Attention
-USE_CLASS_WEIGHTS = True # Imbalanced data
+```python
+# Dataset paths
+TRAIN_DIR = 'Tomato/Train'           # Hoặc 'Tomato/Fixed_Train' nếu dùng preprocessed
+VAL_DIR = 'Tomato/Val'
+TEST_DIR = 'Tomato/Test'
+
+# Hyperparameters
+IMG_SIZE = 256
+BATCH_SIZE = 32                      # Giảm xuống 16 nếu GPU OOM
+EPOCHS_STAGE1 = 15                   # Frozen base
+EPOCHS_STAGE2 = 15                   # Fine-tuning
+DROPOUT_RATE = 0.3                   # Tăng lên 0.4 nếu overfitting
+LEARNING_RATE = 0.001
+
+# Advanced features
+USE_MIXUP = True                     # MixUp augmentation
+USE_ATTENTION = True                 # Spatial Attention
+USE_CLASS_WEIGHTS = True             # Imbalanced data
+USE_TTA = True                       # Test-Time Augmentation
 ```
 
 ### Kết quả mong đợi
 - Test Accuracy: **95-97%**
 - Top-3 Accuracy: **>98%**
 - Per-class F1: **>0.90**
+- Loss: **<0.20**
 
 ## 🐛 Troubleshooting
 
-### GPU Out of Memory
-```python
-BATCH_SIZE = 16  # Giảm xuống trong notebook
+### 🔴 **Inference Issues (Dự đoán)**
+
+#### **1. Ảnh bị từ chối "KHÔNG PHẢI ẢNH LÁ CÂY"**
+**Nguyên nhân:**
+- Không phát hiện được gân lá (vein score < 0.15)
+- Màu sắc không giống lá (green_ratio < 2%)
+- Hình dạng không giống lá (shape score < 0.40)
+
+**Giải pháp:**
+- ✅ Chụp ở nơi sáng (tránh bóng tối quá nặng)
+- ✅ Lá chiếm >30% diện tích ảnh
+- ✅ Focus rõ ràng (tránh ảnh mờ)
+- ✅ Chụp từ góc nhìn thẳng (tránh góc nghiêng quá)
+- ✅ Chấp nhận lá bệnh (vàng/nâu/đen), lá có bóng, lá rách
+
+**Kiểm tra:**
+```bash
+# Xem chi tiết phân tích
+# Vào web → Upload ảnh → Xem phần "Phân Tích Đặc Trưng Lá Cây"
+# Kiểm tra: vein_score, green_ratio, leaf_shape_score
 ```
 
-### Overfitting (train acc >> val acc)
+#### **2. Độ tin cậy thấp (<70%)**
+**Nguyên nhân:**
+- Ảnh chất lượng kém (mờ, tối, nhiễu)
+- Bệnh phức tạp (nhiều loại bệnh trên 1 lá)
+- Model chưa học tốt trường hợp này
+
+**Giải pháp:**
+- ✅ Chụp lại với chất lượng tốt hơn
+- ✅ Xem Top 5 predictions (có thể bệnh đúng ở vị trí 2-3)
+- ✅ Tham khảo nhiều lá khác nhau
+
+#### **3. Dự đoán sai**
+**Nguyên nhân:**
+- Model confusion giữa các bệnh tương tự (Early Blight ↔ Late Blight)
+- Triệu chứng bệnh chưa rõ ràng (giai đoạn sớm)
+
+**Giải pháp:**
+- ✅ Xem Top 5 predictions
+- ✅ So sánh triệu chứng với disease_info
+- ✅ Chụp nhiều lá khác nhau để xác nhận
+
+---
+
+### 🟡 **Training Issues (Train model)**
+
+#### **1. GPU Out of Memory**
 ```python
-DROPOUT_RATE = 0.4  # Tăng regularization
-USE_MIXUP = True
+# Trong notebook
+BATCH_SIZE = 16  # Giảm từ 32 xuống 16
+IMG_SIZE = 224   # Giảm từ 256 xuống 224
 ```
 
-### Underfitting (cả 2 acc đều thấp)
+#### **2. Overfitting (train acc >> val acc)**
+**Ví dụ:** Train 98%, Val 85%
+
+**Giải pháp:**
 ```python
-Dense(768)  # Tăng capacity
-LEARNING_RATE = 0.002
-EPOCHS_STAGE2 = 20
+DROPOUT_RATE = 0.4        # Tăng từ 0.3
+USE_MIXUP = True          # Bật MixUp
+L2_REGULARIZATION = 0.01  # Thêm L2 reg
+AUGMENTATION_STRENGTH = 0.3  # Tăng augmentation
 ```
 
-### Ảnh bị từ chối
-- Chụp ở nơi sáng, tránh quá tối/sáng
-- Lá chiếm >30% diện tích ảnh
-- Focus rõ, tránh ảnh mờ
-- Chỉ upload ảnh lá cây thật
+#### **3. Underfitting (cả 2 acc đều thấp)**
+**Ví dụ:** Train 80%, Val 78%
+
+**Giải pháp:**
+```python
+Dense(768)                # Tăng capacity (từ 512)
+LEARNING_RATE = 0.002     # Tăng learning rate
+EPOCHS_STAGE2 = 20        # Train lâu hơn
+DROPOUT_RATE = 0.2        # Giảm dropout
+```
+
+#### **4. Convergence chậm (loss giảm chậm)**
+**Giải pháp:**
+```python
+LEARNING_RATE = 0.002     # Tăng learning rate
+BATCH_SIZE = 64           # Tăng batch size
+USE_WARMUP = True         # Thêm warmup schedule
+```
+
+#### **5. Class imbalance (một vài class acc thấp)**
+**Giải pháp:**
+```python
+USE_CLASS_WEIGHTS = True  # Bật class weighting
+FOCAL_LOSS = True         # Dùng Focal Loss thay Categorical Crossentropy
+OVERSAMPLE_MINORITY = True  # Oversample class thiểu số
+```
+
+---
+
+### 🟢 **Data Preprocessing Issues**
+
+#### **1. data_raw.py lỗi "No such file or directory"**
+**Giải pháp:**
+```python
+# Kiểm tra đường dẫn trong file
+INPUT_DIR = "Tomato/Train"  # Phải có thư mục này
+OUTPUT_DIR = "Tomato/Augmented_Train"  # Sẽ tự tạo
+```
+
+#### **2. data_preprocessing.py quá chậm**
+**Giải pháp:**
+```python
+# Giảm số lượng ảnh test
+# Hoặc giảm aggressive_fix
+aggressive_fix = False  # Chỉ sửa ảnh xấu thay vì tất cả
+```
+
+#### **3. Ảnh sau preprocessing quá sáng/tối**
+**Giải pháp:**
+```python
+# Điều chỉnh ngưỡng trong data_preprocessing.py
+self.brightness_low = 80     # Giảm từ 100
+self.brightness_high = 200   # Tăng từ 180
+```
 
 ## 📊 So sánh Model v1.0 vs v2.0 vs v2.1
 
@@ -505,6 +802,23 @@ EPOCHS_STAGE2 = 20
 
 MIT License - Free to use for educational and research purposes
 
+## 🔍 So sánh Các File Xử lý
+
+| File | Chức năng | Khi nào dùng | Input | Output |
+|------|-----------|--------------|-------|--------|
+| **efficientnet_preprocessor.py** | 6-step preprocessing cho inference | Dự đoán realtime | Ảnh user upload | Ảnh chuẩn 224x224 + 6 bước |
+| **image_preprocessing.py** | Validate ảnh lá + enhance | Kiểm tra trước khi dự đoán | Ảnh bất kỳ | True/False + details |
+| **image_analysis.py** | Phân tích đặc trưng lá | Hiển thị thông tin chi tiết | Ảnh lá | Shape/color/texture scores |
+| **data_raw.py** | Làm XẤU dataset | Tạo augmented data (optional) | Dataset gốc | Dataset xấu |
+| **data_preprocessing.py** | SỬA ảnh xấu về tốt | Fix dataset trước train | Dataset xấu | Dataset sạch |
+
+**Lưu ý quan trọng:**
+- 🚀 **Production**: Chỉ dùng `efficientnet_preprocessor.py` + `image_preprocessing.py` + `image_analysis.py`
+- 📊 **Training**: Chỉ dùng `data_raw.py` + `data_preprocessing.py` (optional)
+- ⚠️ **KHÔNG dùng chung**: File training ≠ File production
+
+---
+
 ## 🎉 Acknowledgments
 
 - EfficientNet: Tan & Le (2019)
@@ -512,7 +826,7 @@ MIT License - Free to use for educational and research purposes
 - CBAM: Woo et al. (2018)
 - Dataset: PlantVillage Project
 
-## 🎁 Điểm Nổi Bật v2.1 (December 5, 2025)
+## 🎁 Điểm Nổi Bật v2.1 (December 11, 2025)
 
 ### 🏥 Disease Care System
 - **Database chuyên nghiệp**: 6 bệnh với 500+ dòng hướng dẫn chi tiết
@@ -527,12 +841,41 @@ MIT License - Free to use for educational and research purposes
 - **Smart navigation**: ESC key, click outside, X button
 - **Preserved data**: Lưu disease_info và top_predictions trong history.json
 
+### 🔧 Advanced Preprocessing Pipeline
+- **6-step conditional preprocessing**: Resize → Analyze → CLAHE → Denoise → Sharpen → Normalize
+- **Smart validation**: Vein detection, color analysis, shape analysis
+- **Auto-enhancement**: Adaptive brightness, contrast, sharpness adjustments
+- **Robust to degradation**: Handles dark, blurry, noisy, low-contrast images
+
+### 📊 Professional Data Pipeline
+- **data_raw.py**: 10 degradation types để tạo augmented dataset
+- **data_preprocessing.py**: 4-step restoration để fix ảnh xấu về tốt
+- **Flexible workflow**: Có thể train với dataset gốc hoặc preprocessed
+
 ### 💡 Use Cases
 1. **Nông dân**: Chụp ảnh → Nhận hướng dẫn điều trị ngay lập tức
-2. **Nhà nghiên cứu**: Theo dõi diễn biến bệnh qua lịch sử
-3. **Giáo dục**: Học sinh/sinh viên học về bệnh cây trồng
+2. **Nhà nghiên cứu**: Theo dõi diễn biến bệnh qua lịch sử + phân tích đặc trưng
+3. **Giáo dục**: Học sinh/sinh viên học về bệnh cây trồng + preprocessing pipeline
 4. **Cửa hàng thuốc**: Tư vấn sản phẩm phù hợp cho khách hàng
 
 ---
 
-**Version 2.1** - December 5, 2025 | **Status:** Production Ready ✅ | **Accuracy:** 95-96% 🎯 | **NEW:** Disease Care System 🏥
+## 📝 Changelog
+
+### v2.1 (December 11, 2025)
+- ✅ Tách preprocessing thành 6 bước riêng biệt (luôn hiển thị)
+- ✅ Thêm data_raw.py (10 augmentation types)
+- ✅ Thêm data_preprocessing.py (4-step restoration)
+- ✅ Cải thiện README với luồng hoạt động chi tiết
+- ✅ Xóa file thừa (leaf_detector.py trùng, test.py cũ)
+
+### v2.0 (December 5, 2025)
+- ✅ Disease Care System với 6 bệnh chi tiết
+- ✅ Interactive History với modal popup
+- ✅ Spatial Attention Mechanism
+- ✅ MixUp Augmentation
+- ✅ Accuracy: 92% → 95-96%
+
+---
+
+**Version 2.1** - December 11, 2025 | **Status:** Production Ready ✅ | **Accuracy:** 95-96% 🎯 | **NEW:** 6-Step Preprocessing Pipeline + Professional Data Pipeline 🔧

@@ -26,8 +26,9 @@ except ImportError as e:
 
 # Import module tiền xử lý thông minh
 from image_preprocessing import ImagePreprocessor, preprocess_and_check
-# Import leaf detector
-from leaf_detector import get_leaf_detector, analyze_leaf_image
+# Import image analysis (MODULE CHÍNH cho validation và analysis)
+from image_analysis import analyze_image
+from efficientnet_preprocessor import preprocess_for_efficientnet
 
 app = FastAPI(title="Tomato Disease Detection API")
 
@@ -627,139 +628,61 @@ async def predict(file: UploadFile = File(...)):
         if img.mode != 'RGB':
             img = img.convert('RGB')
         
-        # === BƯỚC 0: KIỂM TRA NHANH - CÓ PHẢI ẢNH LÁ KHÔNG ===
-        img_array_check = np.array(img)
-        leaf_analysis = analyze_leaf_image(img_array_check)
+        # === BƯỚC 1: TIỀN XỬ LÝ ẢNH CHO EFFICIENTNETB0 (TRƯỚC KHI PHÂN TÍCH) ===
+        # Xử lý ảnh qua 4 bước: Resize -> Analyze -> Conditional Processing -> Normalize (ImageNet)
+        # Ảnh sau khi xử lý sẽ sạch hơn, giúp phân tích chính xác hơn
+        print("\n[EfficientNet Preprocessing] Starting preprocessing pipeline...")
+        efficientnet_result = preprocess_for_efficientnet(img, target_size=(IMG_SIZE, IMG_SIZE))
         
-        if not leaf_analysis['is_leaf']:
+        # Lấy ảnh đã xử lý để phân tích
+        preprocessed_img = efficientnet_result['final_image']
+        
+        # Convert PIL Image sang bytes để phân tích
+        buffered_temp = io.BytesIO()
+        preprocessed_img.save(buffered_temp, format="JPEG", quality=95)
+        preprocessed_contents = buffered_temp.getvalue()
+        
+        # === BƯỚC 2: PHÂN TÍCH ẢNH ĐÃ XỬ LÝ - SỬ DỤNG image_analysis.py ===
+        # Phân tích ảnh ĐÃ được làm sạch: shape, color, texture
+        print("\n[Image Analysis] Analyzing preprocessed image...")
+        analysis_result = analyze_image(preprocessed_contents)
+        
+        # Kiểm tra xem có phải ảnh lá không
+        final_score = analysis_result['finalScore']
+        is_leaf = analysis_result['isLeaf']
+        
+        if not is_leaf:
             return JSONResponse({
                 "success": False,
                 "error": "NOT_LEAF_IMAGE",
-                "message": "⚠️ Ảnh không phải là ảnh lá cây",
-                "confidence": round(leaf_analysis['confidence'] * 100, 1),
-                "reason": leaf_analysis['reason'],
-                "recommendation": "Vui lòng upload ảnh lá cà chua để phát hiện bệnh",
+                "message": f"⚠️ {final_score['recommendation']}",
+                "confidence": round(final_score['score'] * 100, 1),
+                "reason": final_score['confidence'],
+                "recommendation": "Vui lòng upload ảnh lá cà chua rõ ràng để phát hiện bệnh",
                 "analysis": {
-                    "green_score": round(leaf_analysis['details']['green_score'] * 100, 1),
-                    "texture_score": round(leaf_analysis['details']['texture_score'] * 100, 1),
-                    "shape_score": round(leaf_analysis['details']['shape_score'] * 100, 1),
-                    "brightness_score": round(leaf_analysis['details']['brightness_score'] * 100, 1)
+                    "score": round(final_score['score'] * 100, 1),
+                    "shapeScore": final_score['shapeScore'],
+                    "colorScore": final_score['colorScore'],
+                    "textureScore": final_score['textureScore'],
+                    "greenRatio": analysis_result['color']['greenRatio'],
+                    "veinScore": analysis_result['texture']['veinScore']
                 }
             })
         
-        # === BƯỚC 1: KIỂM TRA THÔNG MINH ===
-        # Sử dụng thuật toán đa tầng: texture + shape + color
-        result = preprocess_and_check(img, target_size=(IMG_SIZE, IMG_SIZE))
-        
-        # Nếu KHÔNG phải lá cây (chó, mèo, người, đồ vật)
-        if not result['is_leaf']:
-            details = result['details']
-            # details có thể là string (lý do từ chối) hoặc dict (phân tích chi tiết)
-            if isinstance(details, str):
-                # Trường hợp từ chối sớm với lý do string
-                return JSONResponse({
-                    "success": False,
-                    "error": "NOT_LEAF_IMAGE",
-                    "message": "Ảnh không phải là ảnh lá cây",
-                    "reason": details,
-                    "recommendation": "Vui lòng chọn ảnh lá cây thật"
-                })
-            else:
-                # Trường hợp có phân tích chi tiết
-                return JSONResponse({
-                    "success": False,
-                    "error": "NOT_LEAF_IMAGE",
-                    "message": "Ảnh không phải là ảnh lá cây",
-                    "recommendation": details.get('recommendation', 'Vui lòng chọn ảnh lá cây'),
-                    "analysis": {
-                        "green_ratio": round(details.get('green_ratio', 0) * 100, 2),
-                        "shadow_ratio": round(details.get('shadow_ratio', 0) * 100, 2),
-                        "texture_score": round(details.get('texture_score', 0), 2),
-                        "leaf_shape_score": round(details.get('leaf_shape_score', 0), 2),
-                        "is_damaged_leaf": details.get('is_damaged_leaf', False),
-                        "has_shadow": details.get('has_shadow', False)
-                    }
-                })
-
-        # --- Additional safeguard ---
-        # Kiểm tra bổ sung để chặn động vật và đồ vật
-        details = result.get('details', {})
-        
-        # Lấy các chỉ số quan trọng
-        vein_score = float(details.get('vein_score', details.get('texture_score', 0)))
-        main_obj_ratio = float(details.get('main_object_ratio', 0))
-        green_ratio = float(details.get('green_ratio', 0))
-        leaf_shape_score = float(details.get('leaf_shape_score', 0))
-        
-        # Configurable thresholds - TĂNG THRESHOLD để chặn động vật CHẮC CHẮN
-        MIN_VEIN_SCORE = float(os.environ.get('MIN_VEIN_SCORE', '0.20'))
-        MIN_GREEN_RATIO = float(os.environ.get('MIN_GREEN_RATIO', '0.15'))  # Tăng lên 15%
-        MIN_LEAF_SHAPE = float(os.environ.get('MIN_LEAF_SHAPE', '0.15'))
-        
-        # CHIẾN LƯỢC CHẶT CHẼ NHẤT:
-        # Phải có CẢ 3 điều kiện HOẶC có green_ratio rất cao (>30%):
-        # 1. Có gân lá rõ (vein_score >= 0.20)
-        # 2. Có màu xanh thực vật (green_ratio >= 15%)
-        # 3. Có hình dạng lá (leaf_shape_score >= 0.15)
-        
-        has_vein_structure = vein_score >= MIN_VEIN_SCORE
-        has_vegetation = green_ratio >= MIN_GREEN_RATIO
-        has_reasonable_shape = leaf_shape_score >= MIN_LEAF_SHAPE
-        has_high_green = green_ratio >= 0.30  # Lá thật thường có >30% màu xanh
-        
-        # Đếm số điều kiện thỏa mãn
-        leaf_conditions_met = sum([has_vein_structure, has_vegetation, has_reasonable_shape])
-        
-        # Từ chối nếu:
-        # - Có ít hơn 2 điều kiện HOẶC
-        # - Không có màu xanh cao (động vật, người, đồ vật)
-        is_likely_not_leaf = (leaf_conditions_met < 2) or (not has_vegetation and not has_high_green)
-        
-        # Allow override
-        FORCE_PREDICT = os.environ.get('FORCE_PREDICT_ON_WEAK_LEAF', '0') == '1'
-        
-        if not FORCE_PREDICT and is_likely_not_leaf:
-            # Return structured rejection with analysis
-            rejection_reasons = []
-            if not has_vein_structure:
-                rejection_reasons.append("không phát hiện gân lá")
-            if not has_vegetation:
-                rejection_reasons.append("thiếu màu xanh thực vật (<15%)")
-            if not has_reasonable_shape:
-                rejection_reasons.append("không có hình dạng lá")
-            
-            # Thông báo cụ thể cho động vật
-            if green_ratio < 0.10:
-                message = "🚫 Đây không phải ảnh lá cây! Vui lòng chỉ upload ảnh lá cà chua."
-            else:
-                message = f"⚠️ Ảnh không đạt tiêu chuẩn lá cây ({', '.join(rejection_reasons)})"
-            
-            return JSONResponse({
-                "success": False,
-                "error": "LOW_LEAF_CONFIDENCE",
-                "message": message,
-                "recommendation": "Vui lòng chụp ảnh lá cà chua rõ nét, đủ ánh sáng, lấp đầy khung hình",
-                "analysis": {
-                    "vein_score": round(vein_score, 3),
-                    "green_ratio": round(green_ratio * 100, 2),
-                    "leaf_shape_score": round(leaf_shape_score, 3),
-                    "main_object_ratio": round(main_obj_ratio, 4),
-                    "has_vein_structure": has_vein_structure,
-                    "has_vegetation": has_vegetation,
-                    "has_reasonable_shape": has_reasonable_shape,
-                    "has_high_green": has_high_green,
-                    "conditions_met": leaf_conditions_met,
-                    "minimum_required": 2
-                }
-            })
-        
-        # === BƯỚC 2: SỬ DỤNG ẢNH ĐÃ TĂNG CƯỜNG ===
-        # Ảnh đã được tự động xử lý: tăng sáng, làm nét, CLAHE
-        enhanced_img = result['enhanced_image']
-        img_array = np.array(enhanced_img)
+        # === BƯỚC 3: CHUẨN BỊ ẢNH CHO MODEL ===
+        # Đã có ảnh xử lý từ bước 1
+        enhanced_img = efficientnet_result['final_image']
+        img_array = efficientnet_result['final_array']
         img_array = np.expand_dims(img_array, axis=0)
         
-        # === BƯỚC 3: DỰ ĐOÁN BỆNH ===
+        # Thu thập thông tin preprocessing để hiển thị
+        preprocessing_steps = efficientnet_result['steps']
+        preprocessing_summary = efficientnet_result['summary']
+        
+        print(f"[EfficientNet Preprocessing] ✅ Completed {preprocessing_summary['total_steps']} steps")
+        print(f"[EfficientNet Preprocessing] Actions: {', '.join(preprocessing_summary['actions_taken'])}")
+        
+        # === BƯỚC 4: DỰ ĐOÁN BỆNH ===
         predictions = model.predict(img_array, verbose=0)
         predicted_class_idx = int(np.argmax(predictions[0]))
         confidence = float(predictions[0][predicted_class_idx] * 100)
@@ -775,22 +698,20 @@ async def predict(file: UploadFile = File(...)):
             for idx in top_idx
         ]
         
-        # === BƯỚC 4: PHÂN TÍCH CHẤT LƯỢNG ẢNH ===
-        details = result['details']
-        image_analysis = {
-            "type": "diseased_leaf" if details.get('is_diseased_leaf') else (
-                    "shadow_leaf" if details.get('has_shadow') else (
-                    "damaged_leaf" if details.get('is_damaged_leaf') else "healthy_leaf")),
-            "green_ratio": round(details.get('green_ratio', 0) * 100, 2),
-            "shadow_ratio": round(details.get('shadow_ratio', 0) * 100, 2),
-            "texture_score": round(details.get('texture_score', 0), 2),
-            "leaf_shape_score": round(details.get('leaf_shape_score', 0), 2),
-            "brightness": round(details.get('brightness', 0), 1),
-            "sharpness": round(details.get('sharpness', 0), 1),
-            "recommendation": details.get('recommendation', 'Ảnh đạt chất lượng tốt')
+        # === BƯỚC 5: PHÂN TÍCH CHẤT LƯỢNG ẢNH (từ analysis_result) ===
+        image_analysis_data = {
+            "score": round(final_score['score'] * 100, 1),
+            "confidence": final_score['confidence'],
+            "shapeScore": final_score['shapeScore'],
+            "colorScore": final_score['colorScore'],
+            "textureScore": final_score['textureScore'],
+            "greenRatio": analysis_result['color']['greenRatio'],
+            "veinScore": analysis_result['texture']['veinScore'],
+            "edgeDensity": analysis_result['texture']['edgeDensity'],
+            "recommendation": final_score['recommendation']
         }
         
-        # === BƯỚC 5: LƯU VÀO LỊCH SỬ ===
+        # === BƯỚC 6: LƯU VÀO LỊCH SỬ ===
         # Convert ảnh sang base64 để lưu thumbnail
         img_thumbnail = img.copy()
         img_thumbnail.thumbnail((150, 150))
@@ -798,7 +719,7 @@ async def predict(file: UploadFile = File(...)):
         img_thumbnail.save(buffered, format="JPEG")
         img_base64 = base64.b64encode(buffered.getvalue()).decode()
         
-        # === BƯỚC 6: LẤY THÔNG TIN BỆNH VÀ KHUYẾN NGHỊ ===
+        # === BƯỚC 7: LẤY THÔNG TIN BỆNH VÀ KHUYẾN NGHỊ ===
         disease_recommendation = get_disease_recommendation(
             class_names[predicted_class_idx], 
             confidence
@@ -810,22 +731,53 @@ async def predict(file: UploadFile = File(...)):
             "filename": file.filename,
             "predicted_class": class_names[predicted_class_idx],
             "confidence": round(confidence, 2),
-            "image_type": image_analysis["type"],
-            "vein_score": round(details.get('vein_score', 0), 2),
+            "vein_score": analysis_result['texture']['veinScore'],
             "thumbnail": f"data:image/jpeg;base64,{img_base64}",
             "top_predictions": top_predictions,
-            "image_analysis": image_analysis,
-            "disease_info": disease_recommendation
+            "image_analysis": image_analysis_data,
+            "disease_info": disease_recommendation,
+            "preprocessing_summary": preprocessing_summary
         }
         add_to_history(history_entry)
+        
+        # Loại bỏ numpy arrays và convert numpy types sang Python types
+        def clean_value(val):
+            """Convert numpy types to Python native types"""
+            if isinstance(val, np.ndarray):
+                return val.tolist()
+            elif isinstance(val, (np.integer, np.int64, np.int32)):
+                return int(val)
+            elif isinstance(val, (np.floating, np.float64, np.float32)):
+                return float(val)
+            elif isinstance(val, (np.bool_, bool)):
+                return bool(val)
+            elif isinstance(val, dict):
+                return {k: clean_value(v) for k, v in val.items()}
+            elif isinstance(val, list):
+                return [clean_value(v) for v in val]
+            else:
+                return val
+        
+        preprocessing_steps_clean = []
+        for step in preprocessing_steps:
+            step_clean = {
+                'name': step['name'],
+                'description': step['description'],
+                'image_base64': step['image_base64'],
+                'metrics': clean_value(step['metrics'])
+            }
+            preprocessing_steps_clean.append(step_clean)
         
         response_data = {
             "success": True,
             "predicted_class": class_names[predicted_class_idx],
             "confidence": confidence,
             "top_predictions": top_predictions,
-            "image_analysis": image_analysis,
-            "preprocessing": "enhanced" if details.get('is_dark_detected') else "standard",
+            "image_analysis": image_analysis_data,
+            "preprocessing": {
+                "steps": preprocessing_steps_clean,
+                "summary": preprocessing_summary
+            },
             "history_id": history_entry["id"],
             "disease_info": disease_recommendation  # Thông tin chi tiết về bệnh
         }
@@ -908,6 +860,45 @@ async def clear_history():
         return JSONResponse({
             "success": False,
             "error": str(e)
+        }, status_code=500)
+
+@app.post("/analyze")
+async def analyze_image_endpoint(file: UploadFile = File(...)):
+    """
+    Phân tích ảnh chi tiết: shape, color, texture
+    Preprocessing TRƯỚC khi phân tích để có kết quả chính xác hơn
+    """
+    try:
+        # Đọc file
+        contents = await file.read()
+        img = Image.open(io.BytesIO(contents))
+        
+        # Chuyển sang RGB nếu cần
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Preprocessing trước khi phân tích
+        print("\n[Analyze Endpoint] Preprocessing image before analysis...")
+        efficientnet_result = preprocess_for_efficientnet(img, target_size=(256, 256))
+        preprocessed_img = efficientnet_result['final_image']
+        
+        # Convert về bytes
+        buffered = io.BytesIO()
+        preprocessed_img.save(buffered, format="JPEG", quality=95)
+        preprocessed_contents = buffered.getvalue()
+        
+        # Phân tích ảnh ĐÃ xử lý
+        result = analyze_image(preprocessed_contents)
+        
+        return JSONResponse({
+            "success": True,
+            "analysis": result
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e),
+            "message": "Lỗi khi phân tích ảnh"
         }, status_code=500)
 
 @app.get("/health")

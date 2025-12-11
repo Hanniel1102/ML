@@ -518,6 +518,101 @@
             text-align: center;
         }
 
+        /* Preprocessing Section */
+        .preprocessing-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .preprocessing-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .preprocessing-step {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .preprocessing-step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .preprocessing-step h4 {
+            color: #00796b;
+            font-size: 1em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .preprocessing-step p {
+            color: #555;
+            font-size: 0.9em;
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+
+        .preprocessing-step img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .preprocessing-metrics {
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 8px;
+            font-size: 0.85em;
+        }
+
+        .preprocessing-metrics div {
+            margin: 3px 0;
+            color: #666;
+        }
+
+        .preprocessing-summary {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #00796b;
+        }
+
+        .preprocessing-summary h4 {
+            color: #00796b;
+            margin-bottom: 10px;
+        }
+
+        .preprocessing-summary .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            color: #555;
+        }
+
+        .preprocessing-summary .summary-badge {
+            background: #00796b;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+        }
+
         .expand-btn {
             background: #667eea;
             color: white;
@@ -766,6 +861,241 @@
                 justify-content: center;
             }
         }
+
+        /* Analysis Modal Styles */
+        .analysis-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .analysis-modal.active {
+            display: flex;
+        }
+
+        .analysis-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .analysis-header h2 {
+            margin: 0;
+            color: #667eea;
+        }
+
+        .close-analysis {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-analysis:hover {
+            color: #333;
+        }
+
+        .analysis-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .analysis-section h3 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .analysis-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .analysis-item-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .analysis-item-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .analysis-item-desc {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .conclusion-box {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .conclusion-box.positive {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .conclusion-box.negative {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Analysis Results Inline Styles */
+        .analysis-results {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .processed-images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .processed-image-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .processed-image-item h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .processed-image-item canvas {
+            width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+
+        .image-desc {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .analysis-metric {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .analysis-metric-label {
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .analysis-metric-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin: 5px 0;
+        }
+
+        .analysis-metric-bar {
+            width: 100%;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .analysis-metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.8s ease;
+        }
     </style>
 </head>
 <body>
@@ -800,8 +1130,8 @@
                 <button class="btn btn-success" id="cameraBtn" onclick="openCamera()">
                     📷 Chụp ảnh từ camera
                 </button>
-                <button class="btn btn-warning" id="predictBtn" onclick="predictImage()" disabled>
-                    🔮 Dự đoán
+                <button class="btn" id="predictBtn" onclick="analyzeAndPredict()" disabled style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    🔬 Phân Tích & Dự Đoán
                 </button>
             </div>
             <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
@@ -839,7 +1169,70 @@
 
         <!-- Results -->
         <div class="result-section" id="resultSection">
-            <h2 class="result-title">🎯 Kết Quả Chẩn Đoán</h2>
+            <!-- BƯỚC 1: Analysis Results Section - PHÂN TÍCH LÁ CÂY TRƯỚC -->
+            <div class="analysis-results" id="analysisResults" style="display: none;">
+                <h3 style="color: #667eea; margin-top: 20px;">🔬 Bước 1: Phân Tích Đặc Trưng Lá Cây</h3>
+                
+                <!-- Processed Images Grid -->
+                <div class="processed-images-grid">
+                    <div class="processed-image-item">
+                        <h4>📸 Ảnh Gốc</h4>
+                        <img id="originalCanvas" style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px;" alt="Original">
+                        <p class="image-desc">Ảnh gốc được sử dụng để phân tích đặc trưng</p>
+                    </div>
+                    <div class="processed-image-item">
+                        <h4>🔲 Phát Hiện Đường Viền</h4>
+                        <img id="edgeCanvas" style="max-width: 100%; border: 2px solid #667eea; border-radius: 8px;" alt="Edge Detection">
+                        <p class="image-desc">Sobel Edge Detection - phát hiện contour và hình dạng</p>
+                    </div>
+                    <div class="processed-image-item">
+                        <h4>🎨 Phân Tích Màu Sắc</h4>
+                        <img id="colorCanvas" style="max-width: 100%; border: 2px solid #38ef7d; border-radius: 8px;" alt="Color Analysis">
+                        <p class="image-desc">HSV Color Analysis - xác định màu xanh lá, vàng, nâu</p>
+                    </div>
+                    <div class="processed-image-item">
+                        <h4>🌿 Đặc Trưng Gân Lá</h4>
+                        <img id="veinCanvas" style="max-width: 100%; border: 2px solid #f5576c; border-radius: 8px;" alt="Vein Detection">
+                        <p class="image-desc">Vein Detection - phát hiện cấu trúc gân lá bằng Gabor Filter</p>
+                    </div>
+                </div>
+                
+                <!-- Analysis Details -->
+                <div id="analysisDetailsContent"></div>
+            </div>
+
+            <!-- BƯỚC 2: EfficientNet Preprocessing Steps - HIỂN THỊ SAU PHÂN TÍCH -->
+            <div class="preprocessing-section" id="preprocessingSection" style="display: none;">
+                <h3 style="color: #00796b; margin-bottom: 10px; margin-top: 30px; display: flex; align-items: center; gap: 10px;">
+                    🔧 Bước 2: Tiền Xử Lý Ảnh Cho Dự Đoán (EfficientNetB0)
+                </h3>
+                
+                <!-- Giải thích tổng quan -->
+                <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #00796b;">
+                    <p style="color: #1b5e20; margin: 0; line-height: 1.7; font-size: 0.95em;">
+                        <strong>📚 Tại sao cần tiền xử lý?</strong><br>
+                        Sau khi phân tích đặc trưng lá cây, ảnh cần được chuẩn bị cho mô hình EfficientNetB0. 
+                        Hệ thống tự động xử lý ảnh qua <strong>6 bước</strong> để đạt hiệu quả dự đoán cao nhất:
+                    </p>
+                    <ul style="margin: 10px 0 0 20px; color: #2e7d32; line-height: 1.8;">
+                        <li><strong>📐 Resize:</strong> Chuẩn hóa kích thước về 224x224 pixels (yêu cầu EfficientNetB0)</li>
+                        <li><strong>🔍 Phân tích:</strong> Đánh giá độ sáng, tương phản, nhiễu, độ nét để quyết định xử lý</li>
+                        <li><strong>✨ CLAHE:</strong> Tăng cường contrast chỉ khi cần (conditional)</li>
+                        <li><strong>🧹 Denoise:</strong> Khử nhiễu chỉ khi cần (conditional)</li>
+                        <li><strong>🔪 Sharpen:</strong> Làm nét ảnh chỉ khi cần (conditional)</li>
+                        <li><strong>📊 Normalize:</strong> Chuẩn hóa ImageNet mean/std cho EfficientNet</li>
+                    </ul>
+                </div>
+                
+                <div id="preprocessingSteps" class="preprocessing-steps">
+                    <!-- Content will be dynamically inserted -->
+                </div>
+                <div id="preprocessingSummary" class="preprocessing-summary">
+                    <!-- Summary will be dynamically inserted -->
+                </div>
+            </div>
+            
+            <h2 class="result-title" style="margin-top: 30px;">🎯 Bước 3: Kết Quả Chẩn Đoán</h2>
             <div class="predicted-class">
                 <h2 id="predictedClass"></h2>
                 <p class="confidence" id="confidence"></p>
@@ -932,7 +1325,7 @@
             document.getElementById('cameraContainer').style.display = 'none';
         }
 
-        async function predictImage() {
+        async function analyzeAndPredict() {
             if (!currentImage) {
                 showError('❌ Vui lòng chọn hoặc chụp ảnh trước!');
                 return;
@@ -941,6 +1334,44 @@
             showLoading();
             hideResults();
             hideError();
+
+            // Bước 1: Phân tích ảnh qua API Python
+            try {
+                const analysisResult = await analyzeImageViaAPI(currentImage);
+                if (analysisResult.success) {
+                    displayAnalysisResults(analysisResult.analysis);
+                }
+            } catch (error) {
+                console.error('Lỗi phân tích:', error);
+            }
+
+            // Bước 2: Dự đoán bệnh
+            await predictImage();
+        }
+
+        async function analyzeImageViaAPI(imageFile) {
+            const formData = new FormData();
+            formData.append('file', imageFile);
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        async function predictImage() {
+            if (!currentImage) {
+                showError('❌ Vui lòng chọn hoặc chụp ảnh trước!');
+                return;
+            }
 
             const formData = new FormData();
             formData.append('file', currentImage);
@@ -965,15 +1396,36 @@
                             const analysis = result.analysis;
                             console.log('Phân tích ảnh:', analysis);
                             setTimeout(() => {
-                                showError(
-                                    `❌ ${result.message}\n\n` +
-                                    `📊 Phân tích:\n` +
-                                    `• Độ nét: ${analysis.sharpness.toFixed(2)}\n` +
-                                    `• Độ sáng: ${analysis.brightness.toFixed(2)}\n` +
-                                    `• Tỷ lệ màu xanh: ${analysis.green_ratio.toFixed(2)}%\n` +
-                                    `• Điểm chất lượng: ${analysis.confidence.toFixed(2)}%\n\n` +
-                                    `💡 ${result.recommendation}`
-                                );
+                                let analysisText = `❌ ${result.message}\n\n📊 Phân tích:\n`;
+                                
+                                // Kiểm tra từng thuộc tính trước khi hiển thị
+                                if (analysis.green_score !== undefined) {
+                                    analysisText += `• Điểm màu xanh: ${analysis.green_score.toFixed(1)}%\n`;
+                                }
+                                if (analysis.texture_score !== undefined) {
+                                    analysisText += `• Điểm texture: ${analysis.texture_score.toFixed(1)}%\n`;
+                                }
+                                if (analysis.shape_score !== undefined) {
+                                    analysisText += `• Điểm hình dạng: ${analysis.shape_score.toFixed(1)}%\n`;
+                                }
+                                if (analysis.brightness_score !== undefined) {
+                                    analysisText += `• Điểm độ sáng: ${analysis.brightness_score.toFixed(1)}%\n`;
+                                }
+                                if (analysis.vein_score !== undefined) {
+                                    analysisText += `• Điểm gân lá: ${analysis.vein_score.toFixed(3)}\n`;
+                                }
+                                if (analysis.green_ratio !== undefined) {
+                                    analysisText += `• Tỷ lệ màu xanh: ${analysis.green_ratio.toFixed(2)}%\n`;
+                                }
+                                if (analysis.leaf_shape_score !== undefined) {
+                                    analysisText += `• Điểm hình lá: ${analysis.leaf_shape_score.toFixed(3)}\n`;
+                                }
+                                if (result.confidence !== undefined) {
+                                    analysisText += `• Độ tin cậy: ${result.confidence.toFixed(1)}%\n`;
+                                }
+                                
+                                analysisText += `\n💡 ${result.recommendation}`;
+                                showError(analysisText);
                             }, 100);
                         }
                     } else {
@@ -1022,6 +1474,11 @@
             // Display disease information and recommendations
             if (result.disease_info) {
                 displayDiseaseInfo(result.disease_info);
+            }
+
+            // Display preprocessing steps
+            if (result.preprocessing && result.preprocessing.steps) {
+                displayPreprocessing(result.preprocessing);
             }
 
             document.getElementById('resultSection').classList.add('active');
@@ -1165,6 +1622,258 @@
                 detailedInfo.classList.add('expanded');
                 btn.textContent = '📋 Thu gọn thông tin';
             }
+        }
+
+        function displayPreprocessing(preprocessing) {
+            const section = document.getElementById('preprocessingSection');
+            const stepsDiv = document.getElementById('preprocessingSteps');
+            const summaryDiv = document.getElementById('preprocessingSummary');
+            
+            if (!preprocessing || !preprocessing.steps) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            // Display steps with detailed explanations
+            let stepsHtml = '';
+            const stepExplanations = [
+                'Chuyển đổi kích thước ảnh về 224x224 pixels (kích thước chuẩn của EfficientNetB0)',
+                'Phân tích độ sáng, độ tương phản, mức độ nhiễu và độ sắc nét để quyết định xử lý nào cần thiết',
+                'CLAHE - Tăng cường contrast chỉ khi contrast < 40 (Contrast Limited Adaptive Histogram Equalization)',
+                'Denoise - Khử nhiễu chỉ khi noise variance < 500 (Bilateral Filter giữ nguyên cạnh)',
+                'Sharpen - Làm nét ảnh chỉ khi edge strength < 50 (Unsharp Masking với kernel 5)',
+                'Chuẩn hóa theo ImageNet mean/std để tương thích với EfficientNetB0 pretrained model'
+            ];
+            
+            preprocessing.steps.forEach((step, index) => {
+                const stepNum = index + 1;
+                const stepIcons = ['📐', '🔍', '✨', '🧹', '🔪', '📊'];
+                const stepIcon = stepIcons[index] || '⚙️';
+                
+                stepsHtml += `
+                    <div class="preprocessing-step">
+                        <h4>${stepIcon} Bước ${stepNum}: ${step.name}</h4>
+                        <p style="color: #666; font-size: 0.9em; margin: 8px 0;">
+                            <strong>Mô tả:</strong> ${step.description}
+                        </p>
+                        <p style="color: #888; font-size: 0.85em; font-style: italic; margin: 5px 0 10px 0;">
+                            ${stepExplanations[index]}
+                        </p>
+                        <img src="${step.image_base64}" alt="Step ${stepNum}" onclick="openImageModal(this.src)" 
+                             title="Click để xem ảnh kích thước đầy đủ">
+                    </div>
+                `;
+            });
+            stepsDiv.innerHTML = stepsHtml;
+            
+            // Display summary
+            const summary = preprocessing.summary;
+            let summaryHtml = `
+                <h4>📊 Tóm Tắt Kết Quả Xử Lý</h4>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+                    Sau khi xử lý qua <strong>${summary.total_steps} bước</strong>, ảnh đã được tối ưu hóa và sẵn sàng cho mô hình AI phân tích.
+                </p>
+                
+                <div class="summary-item">
+                    <strong>✅ Các xử lý đã thực hiện:</strong>
+                    <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${summary.actions_taken.map(action => `
+                            <span class="summary-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px 12px; border-radius: 15px; font-size: 0.85em;">
+                                ${action}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="summary-item" style="margin-top: 15px;">
+                    <strong>🎯 Chất lượng ảnh sau xử lý:</strong>
+                    <div style="margin-top: 8px; background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                        ${Object.entries(summary.final_quality).map(([key, value]) => {
+                            const quality = getQualityIcon(key, value);
+                            return `
+                                <div style="margin: 6px 0; color: #555; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>${formatQualityKey(key)}:</span>
+                                    <span style="font-weight: bold; color: ${quality.color};">
+                                        ${quality.icon} ${value}
+                                    </span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                
+                <!-- Bảng giải thích các mức chất lượng -->
+                <div style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <strong style="color: #495057;">📖 Giải thích các mức chất lượng:</strong>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                        <div style="font-size: 0.85em; color: #666;">
+                            <strong>Độ sáng:</strong><br>
+                            • Sáng vừa (120-180) = ✅ Tốt<br>
+                            • Hơi tối/sáng = ⚠️ Chấp nhận<br>
+                            • Quá tối/sáng = 🔧 Đã xử lý
+                        </div>
+                        <div style="font-size: 0.85em; color: #666;">
+                            <strong>Tương phản:</strong><br>
+                            • Tốt/Cao (40-80) = ✅ Tốt<br>
+                            • Trung bình = ⚠️ Chấp nhận<br>
+                            • Thấp (<40) = 🔧 Đã tăng
+                        </div>
+                        <div style="font-size: 0.85em; color: #666;">
+                            <strong>Nhiễu:</strong><br>
+                            • Ảnh sạch (>300) = ✅ Tốt<br>
+                            • Nhiễu thấp = ⚠️ OK<br>
+                            • Nhiễu cao (<100) = 🔧 Đã khử
+                        </div>
+                        <div style="font-size: 0.85em; color: #666;">
+                            <strong>Độ nét:</strong><br>
+                            • Sắc nét (>25) = ✅ Tốt<br>
+                            • Vừa phải = ⚠️ Chấp nhận<br>
+                            • Mờ (<15) = 🔧 Đã làm nét
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); border-radius: 8px; border-left: 4px solid #00796b;">
+                    <strong style="color: #00796b;">💡 Kết luận:</strong>
+                    <p style="color: #555; margin-top: 5px; font-size: 0.9em;">
+                        Ảnh đã được chuẩn bị tối ưu với kích thước <strong>224×224 pixels</strong> và chất lượng phù hợp. 
+                        Mô hình EfficientNetB0 giờ có thể phân tích chính xác các đặc điểm bệnh trên lá cà chua với độ tin cậy cao nhất.
+                    </p>
+                    <p style="color: #555; margin-top: 8px; font-size: 0.85em; font-style: italic;">
+                        ⚙️ <strong>Chỉ số kỹ thuật:</strong> Brightness: 120-180 (tốt), Contrast: 40-70 (tốt), 
+                        Noise variance: >300 (sạch), Edge strength: >25 (sắc nét)
+                    </p>
+                </div>
+            `;
+            summaryDiv.innerHTML = summaryHtml;
+            
+            section.style.display = 'block';
+        }
+
+
+
+        function formatQualityKey(key) {
+            const keyMap = {
+                'brightness': '🌞 Độ sáng',
+                'contrast': '🎨 Tương phản',
+                'noise': '🔇 Nhiễu',
+                'sharpness': '🔪 Độ nét'
+            };
+            return keyMap[key] || key;
+        }
+
+        function getQualityIcon(key, value) {
+            // Xác định icon và màu dựa trên giá trị chất lượng
+            const valueLower = value.toLowerCase();
+            
+            // Good quality indicators
+            if (valueLower.includes('ổn định') || valueLower.includes('vừa') || 
+                valueLower.includes('tốt') || valueLower.includes('sạch') || 
+                valueLower.includes('sắc nét')) {
+                return { icon: '✅', color: '#27ae60' };
+            }
+            
+            // Medium quality
+            if (valueLower.includes('trung bình') || valueLower.includes('hơi') ||
+                valueLower.includes('thấp')) {
+                return { icon: '⚠️', color: '#f39c12' };
+            }
+            
+            // Low quality (but processed)
+            if (valueLower.includes('cao') || valueLower.includes('quá') ||
+                valueLower.includes('mờ')) {
+                return { icon: '🔧', color: '#3498db' };
+            }
+            
+            return { icon: '✓', color: '#555' };
+        }
+
+        function openImageModal(src) {
+            // Simple modal to view image in full size
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000; cursor: pointer;';
+            modal.onclick = () => modal.remove();
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
+            
+            modal.appendChild(img);
+            document.body.appendChild(modal);
+        }
+
+        function displayPreprocessing(preprocessing) {
+            const section = document.getElementById('preprocessingSection');
+            const stepsDiv = document.getElementById('preprocessingSteps');
+            const summaryDiv = document.getElementById('preprocessingSummary');
+            
+            // Display steps
+            let stepsHTML = '';
+            preprocessing.steps.forEach((step, index) => {
+                const stepNumber = index + 1;
+                stepsHTML += `
+                    <div class="preprocessing-step">
+                        <h4>📌 Bước ${stepNumber}: ${step.name}</h4>
+                        <p>${step.description}</p>
+                        ${step.image_base64 ? `<img src="${step.image_base64}" alt="${step.name}" onclick="showImageModal(this.src)">` : ''}
+                        ${step.metrics ? `
+                            <div class="preprocessing-metrics">
+                                ${Object.entries(step.metrics).map(([key, value]) => {
+                                    if (typeof value === 'object') return '';
+                                    return;
+                                }).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            stepsDiv.innerHTML = stepsHTML;
+            
+            // Display summary
+            const summary = preprocessing.summary;
+            let summaryHTML = `
+                <h4>📊 Tổng Kết Xử Lý Ảnh</h4>
+                <div class="summary-item">
+                    <strong>Tổng số bước:</strong> 
+                    <span class="summary-badge">${summary.total_steps} bước</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Các thao tác đã thực hiện:</strong>
+                </div>
+                <ul class="info-list" style="margin-left: 20px;">
+                    ${summary.actions_taken.map(action => `<li>${action}</li>`).join('')}
+                </ul>
+                <div class="summary-item" style="margin-top: 10px;">
+                    <strong>Chất lượng cuối:</strong>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
+                        💡 <strong>Độ sáng:</strong> ${summary.final_quality.brightness}
+                    </div>
+                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
+                        🎨 <strong>Tương phản:</strong> ${summary.final_quality.contrast}
+                    </div>
+                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
+                        🔊 <strong>Nhiễu:</strong> ${summary.final_quality.noise}
+                    </div>
+                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
+                        🔍 <strong>Độ nét:</strong> ${summary.final_quality.sharpness}
+                    </div>
+                </div>
+            `;
+            summaryDiv.innerHTML = summaryHTML;
+            
+            // Show section
+            section.style.display = 'block';
+        }
+
+        function showImageModal(src) {
+            // Simple modal for viewing images
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+            modal.innerHTML = `<img src="${src}" style="max-width:90%;max-height:90%;border-radius:10px;">`;
+            modal.onclick = () => modal.remove();
+            document.body.appendChild(modal);
         }
 
         function showLoading() {
@@ -1552,8 +2261,676 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeHistoryModal();
+                closeAnalysisModal();
             }
         });
+
+        // ===========================================
+        // IMAGE ANALYSIS FUNCTIONS
+        // ===========================================
+
+        async function performAdvancedAnalysis(imageBlob) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    img.onload = function() {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const pixels = imageData.data;
+                            
+                            // 1. SHAPE FEATURES (Đặc trưng hình dạng)
+                            const shapeFeatures = analyzeShape(imageData, pixels);
+                            
+                            // 2. TEXTURE/VEIN FEATURES (Đặc trưng cấu trúc/gân lá) - Tạo edge mask trước
+                            const textureResult = analyzeTexture(pixels, canvas.width, canvas.height);
+                            const textureFeatures = textureResult.features;
+                            const edgeMask = textureResult.edgeMask;
+                            
+                            // 3. COLOR FEATURES (Đặc trưng màu sắc) - Chỉ phân tích trong vùng có edge
+                            const colorFeatures = analyzeColor(pixels, edgeMask);
+                            
+                            // Calculate final score
+                            const finalScore = calculateLeafScore(shapeFeatures, colorFeatures, textureFeatures);
+                            
+                            resolve({
+                                shape: shapeFeatures,
+                                color: colorFeatures,
+                                texture: textureFeatures,
+                                finalScore: finalScore,
+                                isLeaf: finalScore.score >= 0.60
+                            });
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    img.src = e.target.result;
+                };
+                
+                reader.onerror = reject;
+                reader.readAsDataURL(imageBlob);
+            });
+        }
+
+        function analyzeShape(imageData, pixels) {
+            // Phát hiện contour và tính toán các đặc trưng hình dạng
+            const width = imageData.width;
+            const height = imageData.height;
+            
+            // Aspect Ratio (Tỷ lệ khung hình)
+            const aspectRatio = width / height;
+            
+            // Tính diện tích đối tượng (không phải background)
+            let objectPixels = 0;
+            let totalGreen = 0;
+            
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+                
+                // Phát hiện vùng không phải background trắng/đen
+                const brightness = (r + g + b) / 3;
+                if (brightness > 20 && brightness < 235) {
+                    objectPixels++;
+                    if (g > r && g > b) totalGreen++;
+                }
+            }
+            
+            const totalPixels = width * height;
+            const mainObjectRatio = objectPixels / totalPixels;
+            
+            // Roundness (Độ tròn) - ước lượng
+            const perimeter = Math.sqrt(objectPixels) * 4;
+            const area = objectPixels;
+            const roundness = (4 * Math.PI * area) / (perimeter * perimeter);
+            
+            // Eccentricity (Độ lệch tâm)
+            const eccentricity = Math.abs(aspectRatio - 1);
+            
+            return {
+                aspectRatio: aspectRatio.toFixed(3),
+                mainObjectRatio: mainObjectRatio.toFixed(3),
+                roundness: Math.min(roundness, 1).toFixed(3),
+                eccentricity: eccentricity.toFixed(3),
+                elongation: aspectRatio > 1 ? (aspectRatio - 1).toFixed(3) : (1/aspectRatio - 1).toFixed(3)
+            };
+        }
+
+        function analyzeColor(pixels, edgeMask) {
+            let totalR = 0, totalG = 0, totalB = 0;
+            let totalH = 0, totalS = 0, totalV = 0;
+            let greenPixels = 0;
+            let yellowPixels = 0;
+            let brownPixels = 0;
+            let analyzedPixelCount = 0;
+            
+            for (let i = 0; i < pixels.length; i += 4) {
+                const pixelIndex = i / 4;
+                
+                // Chỉ phân tích pixel nằm trong vùng có edge (vùng lá)
+                if (!edgeMask || edgeMask[pixelIndex]) {
+                    analyzedPixelCount++;
+                    
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+                    
+                    totalR += r;
+                    totalG += g;
+                    totalB += b;
+                    
+                    // Convert to HSV
+                    const max = Math.max(r, g, b);
+                    const min = Math.min(r, g, b);
+                    const delta = max - min;
+                    
+                    // Hue calculation
+                    let h = 0;
+                    if (delta !== 0) {
+                        if (max === r) h = ((g - b) / delta) % 6;
+                        else if (max === g) h = (b - r) / delta + 2;
+                        else h = (r - g) / delta + 4;
+                        h = h * 60;
+                        if (h < 0) h += 360;
+                    }
+                    
+                    const s = max === 0 ? 0 : delta / max;
+                    const v = max / 255;
+                    
+                    totalH += h;
+                    totalS += s;
+                    totalV += v;
+                    
+                    // Phân loại màu
+                    if (h >= 60 && h <= 180 && s > 0.2 && v > 0.2) {
+                        greenPixels++;
+                    } else if (h >= 30 && h < 60 && s > 0.3) {
+                        yellowPixels++;
+                    } else if ((h < 30 || h > 330) && v < 0.5) {
+                        brownPixels++;
+                    }
+                }
+            }
+            
+            // Nếu không có pixel nào được phân tích, dùng toàn bộ ảnh
+            const finalCount = analyzedPixelCount > 0 ? analyzedPixelCount : pixels.length / 4;
+            
+            return {
+                avgRed: (totalR / finalCount).toFixed(2),
+                avgGreen: (totalG / finalCount).toFixed(2),
+                avgBlue: (totalB / finalCount).toFixed(2),
+                avgHue: (totalH / finalCount).toFixed(2),
+                avgSaturation: (totalS / finalCount).toFixed(3),
+                avgValue: (totalV / finalCount).toFixed(3),
+                greenRatio: (greenPixels / finalCount).toFixed(3),
+                yellowRatio: (yellowPixels / finalCount).toFixed(3),
+                brownRatio: (brownPixels / finalCount).toFixed(3),
+                analyzedPixels: analyzedPixelCount
+            };
+        }
+
+        function analyzeTexture(pixels, width, height) {
+            // Phân tích texture sử dụng Sobel edge detection
+            let edgeCount = 0;
+            let totalMagnitude = 0;
+            const edgeMask = new Array(width * height).fill(false);
+            const edgeMagnitudes = new Array(width * height).fill(0);
+            
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = (y * width + x) * 4;
+                    const pixelIndex = y * width + x;
+                    
+                    // Lấy giá trị grayscale
+                    const getGray = (i) => (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+                    
+                    // Sobel operator
+                    const gx = -getGray(((y-1)*width + x-1)*4) + getGray(((y-1)*width + x+1)*4)
+                             -2*getGray((y*width + x-1)*4) + 2*getGray((y*width + x+1)*4)
+                             -getGray(((y+1)*width + x-1)*4) + getGray(((y+1)*width + x+1)*4);
+                    
+                    const gy = -getGray(((y-1)*width + x-1)*4) - 2*getGray(((y-1)*width + x)*4) - getGray(((y-1)*width + x+1)*4)
+                             +getGray(((y+1)*width + x-1)*4) + 2*getGray(((y+1)*width + x)*4) + getGray(((y+1)*width + x+1)*4);
+                    
+                    const magnitude = Math.sqrt(gx*gx + gy*gy);
+                    edgeMagnitudes[pixelIndex] = magnitude;
+                    
+                    if (magnitude > 30) {
+                        edgeCount++;
+                        edgeMask[pixelIndex] = true;
+                    }
+                    
+                    totalMagnitude += magnitude;
+                }
+            }
+            
+            const totalInnerPixels = (width - 2) * (height - 2);
+            const edgeDensity = edgeCount / totalInnerPixels;
+            const avgMagnitude = totalMagnitude / totalInnerPixels;
+            
+            // Contrast từ standard deviation của magnitude
+            const contrast = Math.min(avgMagnitude / 60, 1);
+            
+            // Vein score: scale edgeDensity * 10
+            const veinScore = Math.min(edgeDensity * 10, 1);
+            
+            // Mở rộng edge mask (dilate) để bao gồm vùng xung quanh edge
+            const dilatedMask = dilateEdgeMask(edgeMask, width, height, 5);
+            
+            return {
+                features: {
+                    edgeDensity: edgeDensity.toFixed(4),
+                    veinScore: veinScore.toFixed(3),
+                    contrast: contrast.toFixed(3)
+                },
+                edgeMask: dilatedMask
+            };
+        }
+
+        function dilateEdgeMask(edgeMask, width, height, radius) {
+            // Mở rộng vùng edge để bao gồm cả vùng xung quanh (foreground)
+            const dilated = new Array(width * height).fill(false);
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = y * width + x;
+                    if (edgeMask[idx]) {
+                        // Đánh dấu pixel xung quanh trong bán kính
+                        for (let dy = -radius; dy <= radius; dy++) {
+                            for (let dx = -radius; dx <= radius; dx++) {
+                                const ny = y + dy;
+                                const nx = x + dx;
+                                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                                    const nIdx = ny * width + nx;
+                                    dilated[nIdx] = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return dilated;
+        }
+
+        function calculateLeafScore(shape, color, texture) {
+            // Tính điểm tổng hợp (đồng bộ với backend Python)
+            const weights = {
+                shape: 0.35,
+                color: 0.50,
+                texture: 0.15
+            };
+            
+            // Shape score
+            const aspectScore = Math.abs(parseFloat(shape.aspectRatio) - 1) < 0.5 ? 0.8 : 0.5;
+            const objectScore = parseFloat(shape.mainObjectRatio) > 0.3 ? 1.0 : 0.3;
+            const shapeScore = (aspectScore + objectScore) / 2;
+            
+            // Color score
+            const greenRatio = parseFloat(color.greenRatio);
+            const colorScore = Math.min(greenRatio * 3, 1);
+            
+            // Texture score
+            const veinScore = parseFloat(texture.veinScore);
+            const textureScore = veinScore;
+            
+            // Final weighted score
+            const finalScore = (
+                shapeScore * weights.shape +
+                colorScore * weights.color +
+                textureScore * weights.texture
+            );
+            
+            let confidence = 'Thấp';
+            let recommendation = 'Không phải ảnh lá';
+            
+            if (finalScore >= 0.75) {
+                confidence = 'Rất cao';
+                recommendation = 'Đây chắc chắn là ảnh lá cây';
+            } else if (finalScore >= 0.60) {
+                confidence = 'Cao';
+                recommendation = 'Đây có thể là ảnh lá cây';
+            } else if (finalScore >= 0.45) {
+                confidence = 'Trung bình';
+                recommendation = 'Có một số đặc điểm của lá nhưng không rõ ràng';
+            } else {
+                confidence = 'Thấp';
+                recommendation = 'Không đủ đặc trưng của lá cây';
+            }
+            
+            return {
+                score: finalScore,
+                shapeScore: shapeScore,
+                colorScore: colorScore,
+                textureScore: textureScore,
+                confidence: confidence,
+                recommendation: recommendation
+            };
+        }
+
+        function displayAnalysisResults(analysis) {
+            // Show inline results section
+            const resultsSection = document.getElementById('analysisResults');
+            resultsSection.style.display = 'block';
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            
+            // Display processed images from API (base64)
+            if (analysis.processedImages) {
+                document.getElementById('originalCanvas').src = analysis.processedImages.original;
+                document.getElementById('edgeCanvas').src = analysis.processedImages.edge;
+                document.getElementById('colorCanvas').src = analysis.processedImages.color;
+                document.getElementById('veinCanvas').src = analysis.processedImages.vein;
+            }
+            
+            // Populate analysis details
+            const detailsContent = document.getElementById('analysisDetailsContent');
+            
+            const isLeaf = analysis.isLeaf;
+            const conclusionClass = isLeaf ? 'positive' : 'negative';
+            const conclusionIcon = isLeaf ? '✅' : '❌';
+            
+            detailsContent.innerHTML = `
+                <!-- Shape Features -->
+                <div class="analysis-section">
+                    <h3>1️⃣ Đặc Trưng Hình Dạng (Shape Features)</h3>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Tỷ lệ khung hình</div>
+                            <div class="analysis-item-value">${analysis.shape.aspectRatio}</div>
+                            <div class="analysis-item-desc">Lá thường 0.5-2.0</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Tỷ lệ đối tượng chính</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.shape.mainObjectRatio) * 100).toFixed(1)}%</div>
+                            <div class="analysis-item-desc">Lá chiếm >30% ảnh</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Độ tròn</div>
+                            <div class="analysis-item-value">${analysis.shape.roundness}</div>
+                            <div class="analysis-item-desc">0=dài, 1=tròn hoàn hảo</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Độ lệch tâm</div>
+                            <div class="analysis-item-value">${analysis.shape.eccentricity}</div>
+                            <div class="analysis-item-desc">Độ khác biệt so với hình tròn</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(analysis.finalScore.shapeScore * 100).toFixed(0)}%">
+                            ${(analysis.finalScore.shapeScore * 100).toFixed(0)}%
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Features -->
+                <div class="analysis-section">
+                    <h3>2️⃣ Đặc Trưng Màu Sắc (Color Features)</h3>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">RGB Trung bình</div>
+                            <div class="analysis-item-value" style="font-size: 16px;">R:${analysis.color.avgRed} G:${analysis.color.avgGreen} B:${analysis.color.avgBlue}</div>
+                            <div class="analysis-item-desc">Màu tổng hợp</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Hue (Sắc thái)</div>
+                            <div class="analysis-item-value">${analysis.color.avgHue}°</div>
+                            <div class="analysis-item-desc">Lá xanh: 60-180°</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Saturation (Độ bão hòa)</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.color.avgSaturation) * 100).toFixed(0)}%</div>
+                            <div class="analysis-item-desc">Màu sắc đậm nhạt</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Tỷ lệ màu xanh</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.color.greenRatio) * 100).toFixed(1)}%</div>
+                            <div class="analysis-item-desc">Lá thật >20%</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Tỷ lệ màu vàng</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.color.yellowRatio) * 100).toFixed(1)}%</div>
+                            <div class="analysis-item-desc">Lá bệnh có vàng</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Tỷ lệ màu nâu</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.color.brownRatio) * 100).toFixed(1)}%</div>
+                            <div class="analysis-item-desc">Lá héo/khô</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(analysis.finalScore.colorScore * 100).toFixed(0)}%; background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);">
+                            ${(analysis.finalScore.colorScore * 100).toFixed(0)}%
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Texture Features -->
+                <div class="analysis-section">
+                    <h3>3️⃣ Đặc Trưng Cấu Trúc/Gân Lá (Texture/Vein Features)</h3>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Điểm gân lá</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.texture.veinScore) * 100).toFixed(0)}%</div>
+                            <div class="analysis-item-desc">Mật độ gân lá rõ ràng</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Mật độ cạnh</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.texture.edgeDensity) * 100).toFixed(1)}%</div>
+                            <div class="analysis-item-desc">Tỷ lệ pixel có cạnh</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Độ phức tạp bề mặt</div>
+                            <div class="analysis-item-value">${(parseFloat(analysis.texture.contrast) * 100).toFixed(0)}%</div>
+                            <div class="analysis-item-desc">Contrast của texture</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(analysis.finalScore.textureScore * 100).toFixed(0)}%; background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);">
+                            ${(analysis.finalScore.textureScore * 100).toFixed(0)}%
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Score -->
+                <div class="analysis-section" style="border-left-color: ${isLeaf ? '#38ef7d' : '#ff6a00'};">
+                    <h3>📊 Điểm Tổng Hợp</h3>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Hình dạng</div>
+                            <div class="analysis-item-value">${(analysis.finalScore.shapeScore * 100).toFixed(0)}%</div>
+                            <div class="analysis-item-desc">Trọng số: 35%</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Màu sắc</div>
+                            <div class="analysis-item-value">${(analysis.finalScore.colorScore * 100).toFixed(0)}%</div>
+                            <div class="analysis-item-desc">Trọng số: 50%</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Gân lá</div>
+                            <div class="analysis-item-value">${(analysis.finalScore.textureScore * 100).toFixed(0)}%</div>
+                            <div class="analysis-item-desc">Trọng số: 15%</div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="analysis-item-label">Điểm cuối</div>
+                            <div class="analysis-item-value" style="font-size: 32px; color: ${isLeaf ? '#38ef7d' : '#ff6a00'};">
+                                ${(analysis.finalScore.score * 100).toFixed(1)}%
+                            </div>
+                            <div class="analysis-item-desc">Độ tin cậy: ${analysis.finalScore.confidence}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conclusion -->
+                <div class="conclusion-box ${conclusionClass}">
+                    ${conclusionIcon} ${analysis.finalScore.recommendation}
+                </div>
+            `;
+        }
+
+        // Draw processed images on canvases
+        function drawProcessedImages(analysis) {
+            // Get image blob from current upload
+            const img = new Image();
+            img.onload = function() {
+                // 1. Draw original image
+                const originalCanvas = document.getElementById('originalCanvas');
+                const originalCtx = originalCanvas.getContext('2d');
+                originalCanvas.width = img.width;
+                originalCanvas.height = img.height;
+                originalCtx.drawImage(img, 0, 0);
+                
+                // Get image data for processing
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = img.width;
+                tempCanvas.height = img.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(img, 0, 0);
+                const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+                const pixels = imageData.data;
+                
+                // 2. Draw edge detection
+                drawEdgeDetection(img.width, img.height, pixels, analysis);
+                
+                // 3. Draw color analysis
+                drawColorAnalysis(img.width, img.height, pixels, analysis);
+                
+                // 4. Draw vein detection
+                drawVeinDetection(img.width, img.height, pixels, analysis);
+            };
+            img.src = URL.createObjectURL(currentImage);
+        }
+
+        function drawEdgeDetection(width, height, pixels, analysis) {
+            const canvas = document.getElementById('edgeCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const edgeData = ctx.createImageData(width, height);
+            const edgePixels = edgeData.data;
+            
+            // Sobel operator
+            const sobelX = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
+            const sobelY = [[1, 2, 1], [0, 0, 0], [-1, -2, -1]];
+            
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let gx = 0, gy = 0;
+                    
+                    // Apply Sobel
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const idx = ((y + ky) * width + (x + kx)) * 4;
+                            const gray = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3;
+                            gx += gray * sobelX[ky + 1][kx + 1];
+                            gy += gray * sobelY[ky + 1][kx + 1];
+                        }
+                    }
+                    
+                    const magnitude = Math.sqrt(gx * gx + gy * gy);
+                    const normalized = Math.min(255, magnitude);
+                    
+                    const idx = (y * width + x) * 4;
+                    edgePixels[idx] = normalized;
+                    edgePixels[idx + 1] = normalized;
+                    edgePixels[idx + 2] = normalized;
+                    edgePixels[idx + 3] = 255;
+                }
+            }
+            
+            ctx.putImageData(edgeData, 0, 0);
+        }
+
+        function drawColorAnalysis(width, height, pixels, analysis) {
+            const canvas = document.getElementById('colorCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const colorData = ctx.createImageData(width, height);
+            const colorPixels = colorData.data;
+            
+            // Highlight green, yellow, brown regions
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+                
+                // Convert to HSV
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                const delta = max - min;
+                
+                let h = 0;
+                if (delta !== 0) {
+                    if (max === r) h = ((g - b) / delta) % 6;
+                    else if (max === g) h = (b - r) / delta + 2;
+                    else h = (r - g) / delta + 4;
+                    h = h * 60;
+                    if (h < 0) h += 360;
+                }
+                
+                // Color mapping
+                if (h >= 60 && h <= 180) {
+                    // Green region - highlight bright green
+                    colorPixels[i] = 0;
+                    colorPixels[i + 1] = 255;
+                    colorPixels[i + 2] = 0;
+                } else if (h >= 30 && h < 60) {
+                    // Yellow region - highlight yellow
+                    colorPixels[i] = 255;
+                    colorPixels[i + 1] = 255;
+                    colorPixels[i + 2] = 0;
+                } else if (h >= 0 && h < 30 || h >= 330) {
+                    // Brown/Red region - highlight orange
+                    colorPixels[i] = 255;
+                    colorPixels[i + 1] = 100;
+                    colorPixels[i + 2] = 0;
+                } else {
+                    // Other - keep original
+                    colorPixels[i] = r;
+                    colorPixels[i + 1] = g;
+                    colorPixels[i + 2] = b;
+                }
+                colorPixels[i + 3] = 255;
+            }
+            
+            ctx.putImageData(colorData, 0, 0);
+        }
+
+        function drawVeinDetection(width, height, pixels, analysis) {
+            const canvas = document.getElementById('veinCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const veinData = ctx.createImageData(width, height);
+            const veinPixels = veinData.data;
+            
+            // Copy original image first
+            for (let i = 0; i < pixels.length; i++) {
+                veinPixels[i] = pixels[i];
+            }
+            
+            // Sobel for edge detection
+            const sobelX = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
+            const sobelY = [[1, 2, 1], [0, 0, 0], [-1, -2, -1]];
+            
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let gx = 0, gy = 0;
+                    
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const idx = ((y + ky) * width + (x + kx)) * 4;
+                            const gray = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3;
+                            gx += gray * sobelX[ky + 1][kx + 1];
+                            gy += gray * sobelY[ky + 1][kx + 1];
+                        }
+                    }
+                    
+                    const magnitude = Math.sqrt(gx * gx + gy * gy);
+                    
+                    // Overlay veins with red highlight
+                    if (magnitude > 30) {  // Threshold for vein detection
+                        const idx = (y * width + x) * 4;
+                        veinPixels[idx] = Math.min(255, veinPixels[idx] + 100);  // Add red
+                        veinPixels[idx + 1] = Math.max(0, veinPixels[idx + 1] - 50);  // Reduce green
+                        veinPixels[idx + 2] = Math.max(0, veinPixels[idx + 2] - 50);  // Reduce blue
+                    }
+                }
+            }
+            
+            ctx.putImageData(veinData, 0, 0);
+        }
+
+        function closeAnalysisModal() {
+            const modal = document.getElementById('analysisModal');
+            modal.classList.remove('active');
+        }
     </script>
+
+    <!-- Analysis Modal HTML -->
+    <div id="analysisModal" class="analysis-modal" onclick="closeAnalysisModal()">
+        <div class="analysis-content" onclick="event.stopPropagation()">
+            <div class="analysis-header">
+                <h2>🔬 Phân Tích Ảnh Chi Tiết</h2>
+                <button class="close-analysis" onclick="closeAnalysisModal()">×</button>
+            </div>
+            <div id="analysisBody">
+                <!-- Analysis content will be inserted here -->
+            </div>
+        </div>
+    </div>
 </body>
 </html>
