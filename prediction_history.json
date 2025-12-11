@@ -1,0 +1,320 @@
+[
+  {
+    "id": 1,
+    "timestamp": "2025-12-11 18:00:09",
+    "filename": "53340e3e-368b-4139-8931-afa1c171dbda___YLCV_GCREC 2525.JPG",
+    "predicted_class": "Yellow Leaf Curl Virus",
+    "confidence": 99.99,
+    "vein_score": "1.000",
+    "thumbnail": "data:image/jpeg;base64,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",
+    "top_predictions": [
+      {
+        "class": "Yellow Leaf Curl Virus",
+        "confidence": 99.99347925186157
+      },
+      {
+        "class": "Late Blight",
+        "confidence": 0.002992486406583339
+      },
+      {
+        "class": "Bacterial Spot",
+        "confidence": 0.001265441551367985
+      },
+      {
+        "class": "Healthy",
+        "confidence": 0.001201261784444796
+      },
+      {
+        "class": "Early Blight",
+        "confidence": 0.0005840479389007669
+      }
+    ],
+    "image_analysis": {
+      "score": 99.0,
+      "confidence": "Rất cao",
+      "shapeScore": "0.970",
+      "colorScore": "1.000",
+      "textureScore": "1.000",
+      "greenRatio": "0.648",
+      "veinScore": "1.000",
+      "edgeDensity": "0.6229",
+      "recommendation": "Đây chắc chắn là ảnh lá cây (Đặc điểm hình học, màu sắc, và cấu trúc gân rõ ràng).",
+      "brightness": 128,
+      "contrast": 50,
+      "sharpness": 50,
+      "noise": 1000
+    },
+    "disease_info": {
+      "name_vi": "Virus Cuộn Lá Vàng",
+      "severity": "Rất Cao",
+      "certainty": "RẤT CAO",
+      "confidence": 99.99347925186157,
+      "description": "Bệnh virus do ruồi trắng (whitefly) truyền. KHÔNG CÓ THUỐC CHỮA, chỉ kiểm soát ruồi trắng.",
+      "symptoms": [
+        "Lá cuộn lại, vàng úa",
+        "Cây còi cọc, không lớn",
+        "Hoa rụng, không đậu quả",
+        "Ruồi trắng bay rất nhiều khi lay cây"
+      ],
+      "causes": [
+        "Ruồi trắng (Bemisia tabaci) truyền virus",
+        "Thời tiết nóng khô (>30°C)",
+        "Cây trồng liên tục, không luân canh",
+        "Không có lưới chắn côn trùng"
+      ],
+      "treatment": {
+        "immediate": [
+          "🔴 KHÔNG CÓ THUỐC CHỮA - Nhổ bỏ cây bệnh NGAY!",
+          "🪰 Diệt ruồi trắng khẩn cấp: Imidacloprid hoặc Thiamethoxam",
+          "🟨 Treo bẫy dính màu vàng (yellow sticky traps)",
+          "🧼 Xịt xà phòng gốc dầu neem để đuổi ruồi"
+        ],
+        "shortterm": [
+          "Phun thuốc diệt ruồi trắng 5 ngày/lần trong 3 tuần",
+          "Treo bẫy vàng mỗi 5-10m",
+          "Xịt nước mạnh dưới lá để đánh rơi ruồi",
+          "Che lưới chắn côn trùng (mesh 50)",
+          "Loại bỏ cỏ dại (ổ chứa ruồi trắng)"
+        ],
+        "longterm": [
+          "Trồng giống kháng virus (Tygress, SV7203)",
+          "Nhà lưới/nhà kính với lưới chắn",
+          "Không trồng cà chua gần dưa, bí",
+          "Luân canh 6 tháng, nghỉ đất",
+          "Sử dụng phản quang bạc (silver mulch) đuổi ruồi",
+          "Trồng cây bẫy (hướng dương) xung quanh"
+        ]
+      },
+      "prevention": [
+        "Lưới chắn 40-50 mesh từ khi gieo hạt",
+        "Giám sát ruồi trắng hàng tuần",
+        "Phun dầu neem phòng bệnh",
+        "Trồng giống kháng virus",
+        "Tránh mua cây giống có ruồi trắng"
+      ],
+      "products": [
+        "Imidacloprid (Confidor, Admire)",
+        "Thiamethoxam (Actara)",
+        "Spiromesifen (Oberon) - diệt trứng/nhộng",
+        "Dầu Neem hữu cơ",
+        "Bẫy dính vàng (Yellow sticky traps)"
+      ],
+      "action_level": "Áp dụng ngay tất cả biện pháp điều trị"
+    },
+    "preprocessing_summary": {
+      "method": "simple",
+      "steps": [
+        "resize",
+        "rescale"
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "timestamp": "2025-12-11 18:00:26",
+    "filename": "1bd9f661-9b9c-4faf-80ab-86a8a64a8bc2___RS_HL 0271_flipTB.JPG",
+    "predicted_class": "Healthy",
+    "confidence": 99.98,
+    "vein_score": "1.000",
+    "thumbnail": "data:image/jpeg;base64,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",
+    "top_predictions": [
+      {
+        "class": "Healthy",
+        "confidence": 99.9828577041626
+      },
+      {
+        "class": "Late Blight",
+        "confidence": 0.010983983520418406
+      },
+      {
+        "class": "Bacterial Spot",
+        "confidence": 0.0017869610019261017
+      },
+      {
+        "class": "Septoria Leaf Spot",
+        "confidence": 0.001533798422315158
+      },
+      {
+        "class": "Early Blight",
+        "confidence": 0.0014180961443344131
+      }
+    ],
+    "image_analysis": {
+      "score": 94.8,
+      "confidence": "Rất cao",
+      "shapeScore": "0.948",
+      "colorScore": "0.932",
+      "textureScore": "1.000",
+      "greenRatio": "0.459",
+      "veinScore": "1.000",
+      "edgeDensity": "0.9419",
+      "recommendation": "Đây chắc chắn là ảnh lá cây (Đặc điểm hình học, màu sắc, và cấu trúc gân rõ ràng).",
+      "brightness": 128,
+      "contrast": 50,
+      "sharpness": 50,
+      "noise": 1000
+    },
+    "disease_info": {
+      "name_vi": "Lá Khỏe Mạnh",
+      "severity": "Không có",
+      "certainty": "RẤT CAO",
+      "confidence": 99.9828577041626,
+      "description": "Cây cà chua đang phát triển tốt, không có dấu hiệu bệnh. Tiếp tục duy trì chăm sóc.",
+      "symptoms": [
+        "Lá xanh đồng đều, không đốm",
+        "Tăng trưởng mạnh mẽ",
+        "Không có vết thối hoặc héo",
+        "Quả phát triển bình thường"
+      ],
+      "causes": [],
+      "treatment": {
+        "immediate": [
+          "✅ Duy trì chế độ chăm sóc hiện tại",
+          "🌿 Kiểm tra định kỳ để phát hiện sớm bệnh",
+          "💧 Tưới nước đều đặn, tránh khô hạn",
+          "🌞 Đảm bảo đủ ánh sáng (6-8 giờ/ngày)"
+        ],
+        "shortterm": [
+          "Bón phân NPK cân đối 10-14 ngày/lần",
+          "Theo dõi sâu bệnh thường xuyên",
+          "Tỉa cành phụ (suckers) nếu cần",
+          "Đóng cọc hỗ trợ cây khi cao >60cm"
+        ],
+        "longterm": [
+          "Xây dựng lịch trình bón phân khoa học",
+          "Luân canh để duy trì độ phì đất",
+          "Sử dụng phân compost định kỳ",
+          "Ghi chép nhật ký chăm sóc",
+          "Phun phòng bệnh sinh học"
+        ]
+      },
+      "prevention": [
+        "Tưới sáng sớm, tránh tối muộn",
+        "Làm cỏ thường xuyên",
+        "Bón vôi dolomite bổ sung Ca, Mg",
+        "Sử dụng compost chất lượng cao"
+      ],
+      "products": [
+        "Phân NPK 16-16-16 (tăng trưởng)",
+        "Phân NPK 15-5-30 (ra hoa, quả)",
+        "Phân compost hữu cơ",
+        "Trichoderma (nấm đối kháng)"
+      ],
+      "action_level": "Áp dụng ngay tất cả biện pháp điều trị"
+    },
+    "preprocessing_summary": {
+      "method": "simple",
+      "steps": [
+        "resize",
+        "rescale"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "timestamp": "2025-12-11 18:00:42",
+    "filename": "5f774121-b3b2-46fd-a67c-f4d8caf93e5a___GHLB2ES Leaf 66.1_flipLR.JPG",
+    "predicted_class": "Late Blight",
+    "confidence": 99.92,
+    "vein_score": "1.000",
+    "thumbnail": "data:image/jpeg;base64,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",
+    "top_predictions": [
+      {
+        "class": "Late Blight",
+        "confidence": 99.92096424102783
+      },
+      {
+        "class": "Healthy",
+        "confidence": 0.07421488407999277
+      },
+      {
+        "class": "Yellow Leaf Curl Virus",
+        "confidence": 0.0035783767089014873
+      },
+      {
+        "class": "Bacterial Spot",
+        "confidence": 0.0006478740488091717
+      },
+      {
+        "class": "Septoria Leaf Spot",
+        "confidence": 0.0004276346317055868
+      }
+    ],
+    "image_analysis": {
+      "score": 99.0,
+      "confidence": "Rất cao",
+      "shapeScore": "0.970",
+      "colorScore": "1.000",
+      "textureScore": "1.000",
+      "greenRatio": "0.908",
+      "veinScore": "1.000",
+      "edgeDensity": "0.3966",
+      "recommendation": "Đây chắc chắn là ảnh lá cây (Đặc điểm hình học, màu sắc, và cấu trúc gân rõ ràng).",
+      "brightness": 128,
+      "contrast": 50,
+      "sharpness": 50,
+      "noise": 1000
+    },
+    "disease_info": {
+      "name_vi": "Bệnh Mốc Sương",
+      "severity": "Rất Cao",
+      "certainty": "RẤT CAO",
+      "confidence": 99.92096424102783,
+      "description": "Bệnh nguy hiểm nhất, do nấm Phytophthora infestans. Có thể tiêu diệt toàn bộ vườn trong 1-2 tuần.",
+      "symptoms": [
+        "Đốm lớn màu nâu xám trên lá",
+        "Vệt trắng mốc ở mặt dưới lá (khi ẩm)",
+        "Thân đen, chết nhanh",
+        "Quả thối nhanh, mùi hôi"
+      ],
+      "causes": [
+        "Thời tiết mát (15-25°C)",
+        "Độ ẩm rất cao (>90%)",
+        "Mưa liên tục, sương mù",
+        "Gió lan truyền bào tử"
+      ],
+      "treatment": {
+        "immediate": [
+          "🚨 KHẨN CẤP: Nhổ bỏ cây bệnh nặng ngay lập tức!",
+          "🔥 Đốt hoặc chôn sâu (không compost)",
+          "💊 Phun thuốc diệt nấm Metalaxyl + Mancozeb NGAY",
+          "🚧 Cách ly khu vực bệnh, không đi lại"
+        ],
+        "shortterm": [
+          "Phun thuốc 5-7 ngày/lần, không bỏ lần nào",
+          "Luân phiên 2-3 loại thuốc để tránh kháng",
+          "Tăng thông gió, giảm ẩm tối đa",
+          "Ngừng tưới nước 3-5 ngày nếu có thể",
+          "Giám sát 24/7, phát hiện sớm"
+        ],
+        "longterm": [
+          "Trồng giống kháng bệnh (Matt's Wild Cherry, Defiant PHR)",
+          "Xây nhà lưới/nhà kính để kiểm soát ẩm",
+          "Hệ thống tưới nhỏ giọt tự động",
+          "Không trồng cà chua liên tục >2 mùa",
+          "Khử trùng toàn bộ vườn sau thu hoạch"
+        ]
+      },
+      "prevention": [
+        "Trồng giống kháng bệnh (ưu tiên số 1)",
+        "Che mưa bằng mái che hoặc mulch plastic",
+        "Phun phòng trước mưa 1-2 ngày",
+        "Khoảng cách >90cm, không trồng dày"
+      ],
+      "products": [
+        "Ridomil Gold (Metalaxyl + Mancozeb) - ƯU TIÊN",
+        "Revus (Mandipropamid)",
+        "Curzate (Cymoxanil)",
+        "Ranman (Cyazofamid)"
+      ],
+      "action_level": "Áp dụng ngay tất cả biện pháp điều trị"
+    },
+    "preprocessing_summary": {
+      "method": "simple",
+      "steps": [
+        "resize",
+        "rescale"
+      ]
+    }
+  }
+]

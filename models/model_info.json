@@ -1,0 +1,27 @@
+{
+  "model_name": "EfficientNetB0_Optimized",
+  "version": "2.0",
+  "training_date": "2025-12-04",
+  "test_accuracy": 0.9964285492897034,
+  "classes": [
+    "Bacterial Spot",
+    "Early Blight",
+    "Healthy",
+    "Late Blight",
+    "Septoria Leaf Spot",
+    "Yellow Leaf Curl Virus"
+  ],
+  "num_classes": 6,
+  "input_size": [
+    256,
+    256,
+    3
+  ],
+  "improvements": [
+    "MixUp augmentation",
+    "Spatial attention",
+    "Two-stage training",
+    "Class weighting",
+    "Fine-tuning EfficientNetB0"
+  ]
+}

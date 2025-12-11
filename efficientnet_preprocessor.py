@@ -13,14 +13,14 @@ import base64
 
 class EfficientNetPreprocessor:
     """
-    Xử lý ảnh cho EfficientNetB0 (224x224)
+    Xử lý ảnh cho EfficientNetB0 (256x256 - model đã train)
     Chỉ áp dụng xử lý KHI CẦN THIẾT dựa trên phân tích ảnh
     """
     
-    def __init__(self, target_size=(224, 224)):
+    def __init__(self, target_size=(256, 256)):
         """
         Args:
-            target_size: Kích thước đầu ra cho EfficientNetB0 (width, height)
+            target_size: Kích thước đầu ra (width, height) - MẶC ĐỊNH 256x256
         """
         self.target_size = target_size
         self.processing_steps = []
@@ -277,27 +277,26 @@ class EfficientNetPreprocessor:
         }
     
     def _step6_normalize(self, img_array):
-        """BƯỚC 4: NORMALIZE theo EfficientNet (ImageNet mean/std)"""
-        print(f"  → Normalize: [0-255] → [0-1] → (x - mean) / std")
+        """BƯỚC 6: NORMALIZE đơn giản /255 (như lúc train model)"""
+        print(f"  → Normalize: [0-255] → [0-1] (rescale=1./255)")
         
-        # Convert to float32 and scale to [0, 1]
+        # Convert to float32 and scale to [0, 1] - ĐÚNG như lúc train
         normalized = img_array.astype(np.float32) / 255.0
         
-        # Apply ImageNet normalization (EfficientNet pretrained on ImageNet)
-        normalized = (normalized - self.mean) / self.std
+        # KHÔNG dùng ImageNet mean/std vì model train với rescale=1./255
         
         # For display, convert back to uint8
         display_img = img_array.copy()
         
         return {
             'name': 'Normalize',
-            'description': f'ImageNet normalization: mean={self.mean}, std={self.std}',
+            'description': 'Rescale to [0-1]: pixel / 255.0',
             'image_base64': self._array_to_base64(display_img),
             'image': normalized,  # Normalized array for model
             'metrics': {
                 'normalized': True,
-                'mean': self.mean.tolist(),
-                'std': self.std.tolist(),
+                'method': 'rescale',
+                'formula': 'x / 255.0',
                 'range': f'[{normalized.min():.3f}, {normalized.max():.3f}]'
             }
         }
@@ -408,13 +407,13 @@ class EfficientNetPreprocessor:
         }
 
 
-def preprocess_for_efficientnet(image_input, target_size=(224, 224)):
+def preprocess_for_efficientnet(image_input, target_size=(256, 256)):
     """
     Wrapper function để xử lý ảnh cho EfficientNetB0
     
     Args:
         image_input: PIL Image, numpy array, hoặc bytes
-        target_size: Kích thước đầu ra (width, height)
+        target_size: Kích thước đầu ra (width, height) - MẶC ĐỊNH 256x256
         
     Returns:
         dict: Kết quả xử lý với final_image, final_array và các bước
