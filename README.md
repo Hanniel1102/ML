@@ -2,6 +2,19 @@
 
 Ứng dụng web sử dụng Deep Learning (EfficientNetB0 + Spatial Attention) để phát hiện bệnh trên lá cà chua với độ chính xác **95-96%**.
 
+---
+
+## 📋 Mục Lục
+
+1. [✨ Tính Năng](#-tính-năng)
+2. [🏆 Model v2.0](#-model-v20---cải-tiến)
+3. [🔄 Luồng Xử Lý Chi Tiết](#-luồng-xử-lý-chi-tiết)
+4. [🖼️ Kỹ Thuật Xử Lý Ảnh](#️-kỹ-thuật-xử-lý-ảnh)
+5. [🚀 Quick Start](#-quick-start)
+6. [📊 Dataset và Training](#-dataset-và-training)
+
+---
+
 ## ✨ Tính năng
 
 - 📤 Upload ảnh từ máy tính hoặc 📷 chụp từ camera
@@ -24,6 +37,950 @@
 - ✅ Class Weighting cho imbalanced data
 - ✅ Enhanced Architecture (512→256 dense layers)
 - ✅ Test-Time Augmentation (TTA)
+
+---
+
+## 🔄 Luồng Xử Lý Chi Tiết
+
+Khi người dùng upload ảnh, hệ thống thực hiện 5 bước xử lý tuần tự:
+
+### **BƯỚC 1: TIỀN XỬ LÝ ẢNH CƠ BẢN (Basic Preprocessing)**
+
+**File:** `app.py` - endpoint `/predict`
+
+```
+Ảnh gốc → Convert RGB → Resize 256x256 → Giữ nguyên range [0-255]
+```
+
+**Chi tiết:**
+- Chuyển đổi ảnh sang RGB nếu là RGBA, grayscale, hoặc format khác
+- Resize về 256x256 pixels (kích thước model được train)
+- Sử dụng `Image.Resampling.BICUBIC` cho chất lượng tốt
+- **QUAN TRỌNG:** Giữ nguyên pixel values trong range [0, 255] (không rescale)
+- Model có data augmentation layer bên trong, tự xử lý normalization
+
+**Lý do không dùng preprocessing phức tạp:**
+- Model được train với input đơn giản (resize + rescale)
+- Áp dụng CLAHE/Sharpen sẽ làm sai lệch so với training data
+- Data augmentation layer trong model đã xử lý các biến đổi
+
+---
+
+### **BƯỚC 2: PHÂN TÍCH VÀ XÁC THỰC ẢNH LÁ (Image Validation)**
+
+**File:** `image_analysis.py` - function `analyze_image()`
+
+Hệ thống phân tích 3 nhóm đặc trưng để xác định ảnh có phải lá cây không:
+
+#### **2.1. Phân Tích Texture và Gân Lá (Texture Analysis)**
+
+**Function:** `analyze_texture()` trong `image_analysis.py`
+
+**Pipeline:**
+
+```
+Ảnh RGB → HSV → Tạo Leaf Mask → CLAHE Enhancement → Frangi Filter → 
+Gabor Filter → Threshold → Morphological Thinning → Remove Noise → Gân lá
+```
+
+**Các kỹ thuật:**
+
+1. **HSV Color Space + Masking**
+   - Tạo mask cho màu xanh lá: `H=[35-85], S=[20-255], V=[20-255]`
+   - Tạo mask cho màu vàng (lá bệnh): `H=[15-45], S=[20-255], V=[20-255]`
+   - Combine masks để detect cả lá khỏe và lá bệnh
+
+2. **CLAHE (Contrast Limited Adaptive Histogram Equalization)**
+   - Tăng cường kênh Saturation trong HSV
+   - `clipLimit=2.0, tileGridSize=(8,8)`
+   - Làm nổi bật gân lá và texture
+
+3. **Morphological Operations**
+   - Opening: Loại bỏ noise nhỏ
+   - Closing: Lấp đầy khoảng trống
+   - Tạo contour của lá
+
+4. **Frangi Vesselness Filter** (Kỹ thuật chính)
+   - Phát hiện cấu trúc dạng mạch máu/gân lá
+   - Multi-scale detection: sigmas=[2,3,4] pixels
+   - Chỉ giữ top 30% response mạnh nhất
+   - **Tại sao dùng Frangi?** 
+     - Chuyên phát hiện cấu trúc phân nhánh (gân lá)
+     - Hiệu quả hơn Canny/Sobel cho vein detection
+     - Robust với noise và lighting variations
+
+5. **Gabor Filter Bank** (Hỗ trợ)
+   - Quét 4 hướng: 0°, 45°, 90°, 135°
+   - Kernel 9x9, σ=1.5, λ=5.0, γ=0.5
+   - Phát hiện texture định hướng (gân lá có hướng)
+
+6. **Weighted Combination**
+   - `vein_response = 0.5*frangi + 0.5*gabor`
+   - Cân bằng giữa cấu trúc và texture
+
+7. **Morphological Thinning**
+   - Làm mảnh các đường gân về 1 pixel
+   - Dễ dàng đếm và phân tích cấu trúc
+
+8. **Connected Components Analysis**
+   - Loại bỏ noise: chỉ giữ components có `area ≥ 5` hoặc `length > 5`
+   - Đếm số đường gân và phân tích phân nhánh
+
+**Fallback Mechanisms:**
+- Nếu không detect được gân: dùng Sobel edge detection
+- Nếu scikit-image không có: fallback về Gabor filter
+
+**Metrics tính toán:**
+- `vein_density`: Tỷ lệ pixels gân / diện tích lá (2-15% là tốt)
+- `vein_score`: Scale to [0,1] (5% density = 0.5, 10% = 1.0)
+- `edge_density`: Mật độ cạnh trong vùng lá
+- `contrast`: Độ phức tạp bề mặt (std of grayscale)
+
+---
+
+#### **2.2. Phân Tích Hình Dạng (Shape Analysis)**
+
+**Function:** `analyze_shape()` trong `image_analysis.py`
+
+**Các đặc trưng tính toán:**
+
+1. **Aspect Ratio**
+   - `aspect_ratio = width / height`
+   - Lá cây thường có tỷ lệ gần 1 (vuông) hoặc dài (1.5-2.0)
+
+2. **Main Object Ratio**
+   - `main_object_ratio = foreground_pixels / total_pixels`
+   - Lá nên chiếm 30-70% ảnh (0.3-0.7)
+
+3. **Green Density** (Quan trọng nhất)
+   - Đếm pixels xanh trong vùng foreground
+   - `green_density = green_pixels / foreground_pixels`
+   - **Hard constraint:** Phải ≥ 20% để là lá
+
+4. **Roundness**
+   - `roundness = (4π × area) / perimeter²`
+   - Range [0,1]: 1=tròn hoàn hảo, <0.5=dài
+
+5. **Eccentricity**
+   - `eccentricity = |aspect_ratio - 1|`
+   - Đo độ lệch khỏi hình vuông
+
+**Điều kiện pass:**
+- `green_density ≥ 0.20` (20% màu xanh)
+- `main_object_ratio ≥ 0.08` (8% diện tích)
+- Shape score tổng hợp ≥ 0.35
+
+---
+
+#### **2.3. Phân Tích Màu Sắc (Color Analysis)**
+
+**Function:** `analyze_color()` trong `image_analysis.py`
+
+**Chỉ phân tích trong vùng có edge** (không phân tích background)
+
+**Metrics tính toán:**
+
+1. **Color Distribution**
+   - `green_ratio`: H=60-180°, S>0.2, V>0.2 (lá xanh khỏe)
+   - `yellow_ratio`: H=30-60°, S>0.3 (lá bệnh vàng)
+   - `brown_ratio`: H<30° or H>330°, V<0.5 (lá bệnh nâu)
+
+2. **Average HSV Values**
+   - `avgHue`: Màu chủ đạo (90-120° là xanh lá)
+   - `avgSaturation`: Độ bão hòa màu (>0.3 là tốt)
+   - `avgValue`: Độ sáng (>0.3 là đủ sáng)
+
+**Điều kiện pass:**
+- `green_ratio ≥ 0.20` (20% xanh lá)
+- `avgSaturation ≥ 0.25` (màu đủ rõ, không xám)
+
+---
+
+#### **2.4. Hệ Thống Chấm Điểm Động (Dynamic Scoring)**
+
+**Function:** `calculate_dynamic_score()` trong `image_analysis.py`
+
+**Trọng số thay đổi theo tình huống:**
+
+| Tình huống | Shape | Color | Texture | Lý do |
+|------------|-------|-------|---------|-------|
+| **Normal** | 35% | 50% | 15% | Tin màu sắc nhất |
+| **Dark Image** | 40% | 35% | 25% | Màu không tin cậy, tăng texture |
+| **Diseased Leaf** | 35% | 30% | 35% | Lá bệnh mất màu, tin texture |
+| **Strong Veins** | 30% | 40% | 30% | Gân rõ = chắc chắn là lá |
+
+**Công thức:**
+```
+final_score = shape_score × w_shape + color_score × w_color + texture_score × w_texture
+```
+
+**Hard Constraints:**
+- `green_ratio ≥ 0.20` HOẶC `(green_ratio ≥ 0.02 VÀ vein_score ≥ 0.30)`
+- `overall_score ≥ 0.60` (60%)
+
+**Kết quả:**
+- `isLeaf = True`: Pass validation → Tiếp tục predict
+- `isLeaf = False`: Reject với detailed analysis
+
+---
+
+### **BƯỚC 3: DỰ ĐOÁN BỆNH (Disease Prediction)**
+
+**File:** `app.py` - sử dụng TensorFlow model
+
+**Pipeline:**
+
+```
+Ảnh [0-255] → Add batch dimension [1, 256, 256, 3] → 
+Model (data aug + EfficientNetB0 + Spatial Attention) → 
+Softmax probabilities [6 classes]
+```
+
+**Model Architecture:**
+
+1. **Data Augmentation Layer** (trong model)
+   - Random flip horizontal/vertical
+   - Random rotation ±10°
+   - Random zoom ±10%
+   - **Tự động normalize** về ImageNet range
+
+2. **EfficientNetB0 Backbone**
+   - Pretrained on ImageNet
+   - Feature extraction: 1280 features
+   - Frozen trong stage 1, fine-tuned trong stage 2
+
+3. **Spatial Attention Module**
+   - Conv2D 7×7 kernel → Sigmoid
+   - Học vùng quan trọng (lá bệnh)
+   - Multiply với features: `attended = features × attention_map`
+
+4. **Classification Head**
+   - GlobalAveragePooling2D
+   - Dense(256) + Dropout(0.5) + BatchNorm
+   - Dense(6, softmax)
+
+**Output:**
+- 6 probabilities (1 cho mỗi class)
+- Predicted class = argmax(probabilities)
+- Confidence = max(probabilities) × 100%
+
+**6 Classes:**
+1. Bacterial Spot (Đốm Lá Vi Khuẩn)
+2. Early Blight (Bệnh Héo Sớm)
+3. Healthy (Lá Khỏe Mạnh)
+4. Late Blight (Bệnh Mốc Sương)
+5. Septoria Leaf Spot (Đốm Lá Septoria)
+6. Yellow Leaf Curl Virus (Virus Cuộn Lá Vàng)
+
+---
+
+### **BƯỚC 4: TẠO KHUYẾN NGHỊ CHĂM SÓC (Care Recommendations)**
+
+**File:** `app.py` - function `get_disease_recommendation()`
+
+**Database:** `DISEASE_INFO` dictionary chứa đầy đủ thông tin cho 6 classes
+
+**Nội dung cho mỗi bệnh:**
+
+1. **Basic Info**
+   - Tên tiếng Việt
+   - Mức độ nghiêm trọng (Cao/Trung bình/Thấp)
+   - Mô tả bệnh
+
+2. **Symptoms** (Triệu chứng)
+   - Danh sách triệu chứng trực quan
+   - Giúp người dùng xác nhận chẩn đoán
+
+3. **Causes** (Nguyên nhân)
+   - Điều kiện môi trường gây bệnh
+   - Nhiệt độ, độ ẩm, thời tiết
+
+4. **Treatment** (Điều trị)
+   - **Immediate**: Biện pháp khẩn cấp (24h)
+   - **Short-term**: 1-4 tuần
+   - **Long-term**: 3 tháng - 3 năm
+
+5. **Prevention** (Phòng ngừa)
+   - Các biện pháp tránh tái phát
+
+6. **Products** (Sản phẩm điều trị)
+   - Tên thuốc cụ thể
+   - Hoạt chất
+
+**Phân loại theo confidence:**
+
+| Confidence | Certainty | Action Level |
+|-----------|-----------|--------------|
+| ≥ 90% | RẤT CAO | Áp dụng ngay tất cả biện pháp |
+| ≥ 75% | CAO | Áp dụng biện pháp khuyến nghị |
+| ≥ 60% | TRUNG BÌNH | Theo dõi + phòng ngừa |
+| < 60% | THẤP | Chụp ảnh rõ hơn |
+
+---
+
+### **BƯỚC 5: TRẢ VỀ KẾT QUẢ (Response)**
+
+**JSON Response Structure:**
+
+```json
+{
+  "success": true,
+  "prediction": {
+    "class": "Early Blight",
+    "confidence": 94.5,
+    "name_vi": "Bệnh Héo Sớm",
+    "severity": "Trung bình - Cao"
+  },
+  "top_predictions": [
+    {"class": "Early Blight", "confidence": 94.5},
+    {"class": "Late Blight", "confidence": 3.2},
+    ...
+  ],
+  "recommendations": {
+    "description": "...",
+    "symptoms": [...],
+    "treatment": {
+      "immediate": [...],
+      "shortterm": [...],
+      "longterm": [...]
+    },
+    "prevention": [...],
+    "products": [...]
+  },
+  "image_analysis": {
+    "score": 87.5,
+    "shapeScore": 0.82,
+    "colorScore": 0.91,
+    "textureScore": 0.75,
+    "greenRatio": "0.654",
+    "veinScore": "0.432"
+  },
+  "processed_images": {
+    "original": "data:image/jpeg;base64,...",
+    "resized": "data:image/jpeg;base64,..."
+  }
+}
+```
+
+---
+
+## 🖼️ Kỹ Thuật Xử Lý Ảnh
+
+### **Chi Tiết Các Kỹ Thuật Computer Vision**
+
+#### **1. Frangi Vesselness Filter**
+
+**Mục đích:** Phát hiện cấu trúc dạng mạch máu, gân lá
+
+**Nguyên lý:**
+- Sử dụng Hessian matrix để phân tích độ cong tại mỗi pixel
+- Tính 2 eigenvalues (λ1, λ2) từ Hessian matrix
+- Gân lá có λ1 ≈ 0 và λ2 lớn (cong theo 1 chiều)
+
+**Công thức Frangi Filter:**
+
+```
+V(x,y) = {
+  0,                                if λ2 > 0
+  exp(-Rb²/2β²) × (1 - exp(-S²/2γ²)), otherwise
+}
+
+where:
+  Rb = |λ1| / |λ2|  (blobness measure)
+  S = √(λ1² + λ2²)  (structure strength)
+```
+
+**Tham số trong code:**
+- `sigmas=[2,3,4]`: Multi-scale detection (gân to và nhỏ)
+- `alpha=0.5`, `beta=0.5`: Sensitivity parameters
+- `gamma=25`: Background suppression
+- `black_ridges=False`: Gân sáng hơn nền
+
+**Output:** Grayscale image với intensity = khả năng là gân lá
+
+---
+
+#### **2. Gabor Filter Bank**
+
+**Mục đích:** Phát hiện texture và edges theo hướng
+
+**Nguyên lý:**
+- Tích chập của Gaussian với sinusoid
+- Nhạy với texture ở tần số và hướng cụ thể
+
+**Công thức Gabor Kernel:**
+
+```
+g(x,y,θ,λ,σ,γ) = exp(-(x'² + γ²y'²)/(2σ²)) × cos(2πx'/λ)
+
+where:
+  x' = x cos(θ) + y sin(θ)
+  y' = -x sin(θ) + y cos(θ)
+```
+
+**Tham số trong code:**
+- `θ = [0°, 45°, 90°, 135°]`: 4 hướng quét
+- `kernel_size = 9×9`
+- `σ = 1.5`: Độ rộng Gaussian
+- `λ = 5.0`: Wavelength (tần số)
+- `γ = 0.5`: Spatial aspect ratio
+
+**Output:** 4 filtered images → Max pooling → Vein response map
+
+---
+
+#### **3. CLAHE (Contrast Limited Adaptive Histogram Equalization)**
+
+**Mục đích:** Tăng cường độ tương phản cục bộ
+
+**Vấn đề của Histogram Equalization thường:**
+- Tăng noise ở vùng sáng/tối
+- Không phù hợp với ảnh có lighting không đều
+
+**CLAHE giải quyết:**
+- Chia ảnh thành tiles (8×8)
+- Equalization riêng cho từng tile
+- Clip histogram ở `clipLimit=2.0` để tránh over-amplification
+- Interpolate giữa các tiles để smooth
+
+**Code:**
+```python
+clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+enhanced_channel = clahe.apply(image_channel)
+```
+
+**Khi nào áp dụng:**
+- Contrast < 40 (ảnh phẳng)
+- Ảnh tối/sáng quá
+- **KHÔNG dùng** trước khi đưa vào model (vì model không train với CLAHE)
+
+---
+
+#### **4. Morphological Operations**
+
+**Mục đích:** Làm sạch và tăng cường cấu trúc
+
+**Các operations:**
+
+1. **Opening** = Erosion + Dilation
+   - Loại bỏ noise nhỏ
+   - Giữ nguyên shape chính
+
+2. **Closing** = Dilation + Erosion
+   - Lấp đầy khoảng trống
+   - Kết nối các vùng gần nhau
+
+3. **Top-hat** = Original - Opening
+   - Làm nổi vùng sáng hơn nền
+   - Phát hiện gân lá sáng
+
+4. **Black-hat** = Closing - Original
+   - Làm nổi vùng tối hơn nền
+   - Phát hiện gân lá tối
+
+**Structuring Elements:**
+- `MORPH_ELLIPSE (5,5)`: Loại noise
+- `MORPH_ELLIPSE (11,11)`: Fill holes
+- `MORPH_RECT (2,2)`: Connect veins
+
+---
+
+#### **5. Morphological Thinning (Skeletonization)**
+
+**Mục đích:** Làm mảnh đường gân về 1 pixel
+
+**Thuật toán:**
+```python
+while True:
+    eroded = erode(image, kernel)
+    temp = opening(eroded, kernel)
+    skeleton = skeleton OR (image - temp)
+    image = eroded
+    if image is empty: break
+```
+
+**Ứng dụng:**
+- Đếm số đường gân
+- Phân tích branching pattern
+- Tính length/area ratio
+
+---
+
+#### **6. HSV Color Space Analysis**
+
+**Tại sao dùng HSV thay vì RGB?**
+
+| Aspect | RGB | HSV |
+|--------|-----|-----|
+| **Lighting sensitivity** | Cao (3 channels cùng thay đổi) | Thấp (chỉ V thay đổi) |
+| **Color separation** | Khó (màu trộn 3 channels) | Dễ (H là màu thuần) |
+| **Intuitive** | Không (255,0,0 = đỏ?) | Có (H=120° = xanh lá) |
+
+**HSV trong code:**
+- **H (Hue):** 0-179 trong OpenCV (0-360° / 2)
+  - Green: 60-90 (120-180°)
+  - Yellow: 15-30 (30-60°)
+  - Brown: 5-15 (10-30°)
+
+- **S (Saturation):** 0-255
+  - >50: Màu rõ ràng
+  - <30: Gần màu xám
+
+- **V (Value):** 0-255
+  - Brightness
+  - <80: Tối
+  - >180: Sáng
+
+**Ứng dụng:**
+```python
+# Detect green leaves (khỏe hoặc bệnh nhẹ)
+green_mask = cv2.inRange(hsv, (35, 20, 20), (85, 255, 255))
+
+# Detect yellow (bệnh vàng lá)
+yellow_mask = cv2.inRange(hsv, (15, 20, 20), (45, 255, 255))
+```
+
+---
+
+#### **7. Edge Detection Methods Comparison**
+
+| Method | Pros | Cons | Use Case |
+|--------|------|------|----------|
+| **Canny** | Sharp edges, non-max suppression | Sensitive to noise | General edge detection |
+| **Sobel** | Simple, directional | Thick edges | Gradient calculation |
+| **Frangi** | Detects vessels/veins | Slower, needs tuning | Vein structure |
+| **Gabor** | Orientation + frequency | Multiple filters needed | Texture analysis |
+
+**Trong project:**
+- **Frangi + Gabor**: Vein detection (primary)
+- **Sobel**: Fallback khi Frangi fail
+- **Canny**: Không dùng (quá nhạy với noise)
+
+---
+
+#### **8. Gray World White Balance**
+
+**File:** `image_preprocessing.py` - function `gray_world_white_balance()`
+
+**Vấn đề:** Ảnh bị lệch màu do ánh sáng (đèn vàng, nắng chiều, đèn xanh)
+
+**Giả định:** Trung bình các màu trong ảnh nên là xám (neutral)
+
+**Công thức:**
+
+```
+avg_r = mean(R_channel)
+avg_g = mean(G_channel)
+avg_b = mean(B_channel)
+
+avg_gray = (avg_r + avg_g + avg_b) / 3
+
+R' = R × (avg_gray / avg_r)
+G' = G × (avg_gray / avg_g)
+B' = B × (avg_gray / avg_b)
+```
+
+**Khi nào dùng:**
+- Ảnh chụp dưới đèn vàng (ảnh vàng toàn bộ)
+- Ảnh chụp ban đêm với flash (lệch màu)
+- **KHÔNG dùng** nếu ảnh chủ yếu màu xanh (sẽ làm sai màu)
+
+---
+
+#### **9. Connected Components Analysis**
+
+**Mục đích:** Phân tích các vùng liên thông trong binary image
+
+**OpenCV function:**
+```python
+num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+    binary_image, 
+    connectivity=8
+)
+```
+
+**Output:**
+- `num_labels`: Số components (include background)
+- `labels`: Mảng same size, mỗi pixel có label (0, 1, 2, ...)
+- `stats`: [x, y, width, height, area] của mỗi component
+- `centroids`: (cx, cy) tâm của mỗi component
+
+**Ứng dụng trong vein detection:**
+```python
+for i in range(1, num_labels):  # Skip background (label 0)
+    area = stats[i, cv2.CC_STAT_AREA]
+    width = stats[i, cv2.CC_STAT_WIDTH]
+    height = stats[i, cv2.CC_STAT_HEIGHT]
+    
+    # Chỉ giữ components đủ lớn/dài (là gân, không phải noise)
+    if area >= 5 or max(width, height) > 5:
+        valid_veins[labels == i] = 255
+```
+
+---
+
+#### **10. Image Normalization Strategies**
+
+**3 phương pháp:**
+
+| Method | Formula | Range | Use Case |
+|--------|---------|-------|----------|
+| **Rescale** | `x / 255` | [0, 1] | Simple models |
+| **Standardize** | `(x - mean) / std` | [-3, 3] | ML models |
+| **ImageNet Norm** | `(x/255 - mean) / std` | [-2.5, 2.5] | Transfer learning |
+
+**ImageNet mean/std:**
+```
+mean = [0.485, 0.456, 0.406]  # RGB
+std = [0.229, 0.224, 0.225]   # RGB
+```
+
+**Trong project:**
+- **Training:** Rescale only (`rescale=1./255`)
+- **Inference:** Giữ nguyên [0, 255] → Model tự normalize
+
+---
+
+### **Luồng Xử Lý Ảnh - Sơ Đồ Tổng Quan**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    UPLOAD ẢNH (User Input)                       │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                ┌────────────▼────────────┐
+                │   BƯỚC 1: PREPROCESSING │
+                │  - Convert RGB          │
+                │  - Resize 256x256       │
+                │  - Keep [0-255] range   │
+                └────────────┬────────────┘
+                             │
+                ┌────────────▼────────────┐
+                │ BƯỚC 2: IMAGE VALIDATION│
+                └────────────┬────────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+   ┌────▼─────┐      ┌──────▼──────┐      ┌─────▼──────┐
+   │ TEXTURE  │      │   SHAPE     │      │   COLOR    │
+   │ ANALYSIS │      │  ANALYSIS   │      │  ANALYSIS  │
+   │          │      │             │      │            │
+   │ - Frangi │      │ - Aspect    │      │ - HSV      │
+   │ - Gabor  │      │ - Green     │      │ - Green    │
+   │ - Veins  │      │   Density   │      │   Ratio    │
+   └────┬─────┘      └──────┬──────┘      └─────┬──────┘
+        │                   │                    │
+        └───────────┬───────┴───────┬────────────┘
+                    │               │
+           ┌────────▼────────┐      │
+           │ DYNAMIC SCORING │      │
+           │ - Adjust weights│      │
+           │ - Calculate score│     │
+           └────────┬────────┘      │
+                    │               │
+                    ▼               │
+              ┌──────────┐          │
+              │ isLeaf?  │          │
+              └─┬─────┬──┘          │
+                │     │             │
+            Yes │     │ No          │
+                │     └──────────► REJECT
+                │               (detailed analysis)
+                │
+    ┌───────────▼───────────┐
+    │  BƯỚC 3: MODEL        │
+    │  - EfficientNetB0     │
+    │  - Spatial Attention  │
+    │  - Softmax (6 class)  │
+    └───────────┬───────────┘
+                │
+    ┌───────────▼───────────┐
+    │ BƯỚC 4: RECOMMENDATIONS│
+    │  - Match disease info  │
+    │  - Treatment plans     │
+    │  - Prevention tips     │
+    └───────────┬───────────┘
+                │
+    ┌───────────▼───────────┐
+    │  BƯỚC 5: RESPONSE     │
+    │  - JSON with results   │
+    │  - Images (base64)     │
+    │  - Detailed analysis   │
+    └───────────────────────┘
+```
+
+---
+
+### **Điểm Mạnh và Hạn Chế**
+
+#### **✅ Điểm Mạnh:**
+
+1. **Robust Validation**
+   - 3 layers kiểm tra (texture, shape, color)
+   - Dynamic scoring thích ứng với điều kiện ảnh
+   - Hard constraints ngăn false positives
+
+2. **Advanced Vein Detection**
+   - Frangi filter (state-of-the-art cho vein/vessel)
+   - Gabor filter hỗ trợ
+   - Fallback mechanisms đảm bảo không crash
+
+3. **Color Robustness**
+   - HSV space (ít nhạy với lighting)
+   - Gray World white balance
+   - Chấp nhận lá bệnh (vàng, nâu, đen)
+
+4. **High Accuracy Model**
+   - EfficientNetB0 (efficient + accurate)
+   - Spatial Attention (focus on disease areas)
+   - 95-96% accuracy
+
+5. **Comprehensive Care Guide**
+   - 6 classes với thông tin chi tiết
+   - Treatment plans (immediate + long-term)
+   - Sản phẩm điều trị cụ thể
+
+#### **⚠️ Hạn Chế:**
+
+1. **Yêu cầu scikit-image**
+   - Frangi filter cần `scikit-image`
+   - Fallback về Gabor nếu không có (kém hơn)
+
+2. **Tốc độ xử lý**
+   - Frangi + Gabor + Morphology: ~1-2 giây/ảnh
+   - Trade-off giữa accuracy và speed
+
+3. **Sensitivity to Image Quality**
+   - Ảnh quá tối/mờ có thể reject
+   - Cần ảnh rõ ràng, lá chiếm ≥30% frame
+
+4. **6 Classes Only**
+   - Không detect sâu bệnh, thiếu dinh dưỡng khác
+   - Cần training data mở rộng
+
+5. **No Multi-leaf Detection**
+   - Chỉ phân tích 1 lá/ảnh
+   - Ảnh nhiều lá có thể confuse model
+
+---
+
+## 📂 Cấu Trúc Module và Chi Tiết Kỹ Thuật
+
+### **Tổng Quan Luồng Xử Lý**
+
+```
+📤 USER UPLOAD
+    ↓
+┌───────────────────────────────────────────────────────────┐
+│ BƯỚC 1: BASIC PREPROCESSING (app.py)                      │
+│ - Convert RGB                                              │
+│ - Resize 256×256 (BICUBIC)                                │
+│ - Giữ nguyên [0-255] range                                │
+└───────────────┬───────────────────────────────────────────┘
+                ↓
+┌───────────────────────────────────────────────────────────┐
+│ BƯỚC 2: IMAGE VALIDATION (image_analysis.py)              │
+│                                                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │   TEXTURE    │  │    SHAPE     │  │    COLOR     │   │
+│  │              │  │              │  │              │   │
+│  │ • Frangi     │  │ • Aspect     │  │ • HSV        │   │
+│  │ • Gabor      │  │   Ratio      │  │ • Green      │   │
+│  │ • Morphology │  │ • Green      │  │   Ratio      │   │
+│  │ • Thinning   │  │   Density    │  │ • Saturation │   │
+│  │              │  │ • Roundness  │  │              │   │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘   │
+│         │                 │                  │            │
+│         └─────────┬───────┴──────────────────┘            │
+│                   ↓                                        │
+│         ┌─────────────────────┐                           │
+│         │  DYNAMIC SCORING    │                           │
+│         │  Adjust weights by  │                           │
+│         │  image conditions   │                           │
+│         └─────────┬───────────┘                           │
+│                   ↓                                        │
+│              isLeaf = ?                                    │
+└───────────────┬───────────────────────────────────────────┘
+                │
+        ┌───────┴────────┐
+        │                │
+     FALSE            TRUE
+        │                │
+        ↓                ↓
+   REJECT        ┌───────────────────────────────┐
+   (detailed     │ BƯỚC 3: PREDICTION (model)    │
+   analysis)     │ - Data augmentation layer     │
+                 │ - EfficientNetB0              │
+                 │ - Spatial Attention           │
+                 │ - Softmax (6 classes)         │
+                 └───────────┬───────────────────┘
+                             ↓
+                 ┌───────────────────────────────┐
+                 │ BƯỚC 4: RECOMMENDATIONS       │
+                 │ - Match DISEASE_INFO database │
+                 │ - Treatment plans             │
+                 │ - Products                    │
+                 └───────────┬───────────────────┘
+                             ↓
+                 ┌───────────────────────────────┐
+                 │ BƯỚC 5: RESPONSE              │
+                 │ - JSON results                │
+                 │ - Base64 images               │
+                 │ - Analysis scores             │
+                 └───────────────────────────────┘
+                             ↓
+                        💻 CLIENT
+```
+
+---
+
+### **Tham Số Kỹ Thuật Quan Trọng**
+
+#### **Validation Thresholds**
+
+| Parameter | Value | Meaning | Why |
+|-----------|-------|---------|-----|
+| `min_green_ratio` | 0.02 (2%) | Tối thiểu % xanh trong HSV | Chấp nhận lá bệnh nặng |
+| `min_leaf_ratio` | 0.08 (8%) | Tối thiểu % vegetation | Lá phải chiếm đủ diện tích |
+| `min_leaf_shape_score` | 0.30 | Điểm hình dạng tối thiểu | Phân biệt lá và động vật |
+| `min_texture_score` | 0.20 | Điểm texture cơ bản | Phải có gân lá |
+| `excellent_texture_score` | 0.40 | Texture xuất sắc | Gân rõ, chắc chắn là lá |
+
+#### **Color Detection (HSV Range)**
+
+| Color | Hue (H) | Saturation (S) | Value (V) | Target |
+|-------|---------|----------------|-----------|--------|
+| **Green** | 35-85 | 20-255 | 20-255 | Lá khỏe mạnh |
+| **Yellow** | 15-45 | 20-255 | 20-255 | Lá bệnh vàng |
+| **Brown** | 5-25 | 30-255 | 20-200 | Lá bệnh nâu |
+| **Dark/Shadow** | 0-180 | 0-255 | 0-60 | Mảng đen, bóng |
+
+#### **Frangi Filter Parameters**
+
+```python
+frangi(
+    image,
+    sigmas=range(2, 5, 1),    # Multi-scale: 2, 3, 4 pixels
+    black_ridges=False,        # Gân sáng hơn nền
+    alpha=0.5,                 # Plate-like sensitivity
+    beta=0.5,                  # Blobness sensitivity
+    gamma=25                   # Background suppression
+)
+```
+
+#### **Gabor Filter Parameters**
+
+```python
+cv2.getGaborKernel(
+    ksize=(9, 9),              # Kernel size
+    sigma=1.5,                 # Gaussian standard deviation
+    theta=np.deg2rad(angle),   # Orientation: 0°, 45°, 90°, 135°
+    lambd=5.0,                 # Wavelength (frequency)
+    gamma=0.5,                 # Spatial aspect ratio
+    psi=0,                     # Phase offset
+    ktype=cv2.CV_32F           # Float32 kernel
+)
+```
+
+#### **CLAHE Parameters**
+
+```python
+cv2.createCLAHE(
+    clipLimit=2.0,             # Max histogram slope (prevent over-amplification)
+    tileGridSize=(8, 8)        # Size of tiles (8x8 pixels each)
+)
+```
+
+**Khi nào áp dụng CLAHE:**
+- Contrast < 40: Áp dụng CLAHE với clipLimit=2.0
+- Contrast < 25: Áp dụng CLAHE mạnh hơn với clipLimit=2.5
+- Contrast ≥ 40: Bỏ qua (ảnh đã tốt)
+
+#### **Morphological Structuring Elements**
+
+```python
+# Loại bỏ noise nhỏ
+kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
+# Lấp đầy khoảng trống lớn
+kernel_large = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+
+# Kết nối các đường gân
+kernel_connect = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+```
+
+#### **Dynamic Weighting Table**
+
+| Condition | Shape Weight | Color Weight | Texture Weight | Rationale |
+|-----------|--------------|--------------|----------------|-----------|
+| **Normal** | 35% | 50% | 15% | Color most reliable |
+| **Dark Image** | 40% | 35% | 25% | Color unreliable, trust shape/texture |
+| **Diseased Leaf** | 35% | 30% | 35% | Lost color, trust vein structure |
+| **Strong Veins** | 30% | 40% | 30% | Clear veins = definitely leaf |
+
+#### **Model Architecture**
+
+```
+Input: [batch, 256, 256, 3] (0-255 range)
+    ↓
+Data Augmentation Layer (trong model)
+    - RandomFlip(horizontal + vertical)
+    - RandomRotation(±10°)
+    - RandomZoom(±10%)
+    - Rescaling(1./255)
+    ↓
+EfficientNetB0 (pretrained on ImageNet)
+    - Input: [batch, 256, 256, 3] (normalized)
+    - Output: [batch, 8, 8, 1280]
+    ↓
+Spatial Attention Module
+    - Conv2D(1, kernel=7x7) → Sigmoid
+    - Multiply: features × attention_map
+    - Output: [batch, 8, 8, 1280] (attended)
+    ↓
+GlobalAveragePooling2D
+    - Output: [batch, 1280]
+    ↓
+Dense(256) + BatchNorm + Dropout(0.5)
+    ↓
+Dense(6, activation='softmax')
+    ↓
+Output: [batch, 6] (probabilities)
+```
+
+**Training Configuration:**
+
+| Parameter | Stage 1 (Frozen) | Stage 2 (Fine-tune) |
+|-----------|------------------|---------------------|
+| **Epochs** | 20 | 15 |
+| **Learning Rate** | 0.001 | 0.0001 |
+| **Batch Size** | 32 | 32 |
+| **EfficientNet** | Frozen | Trainable |
+| **Augmentation** | MixUp (α=0.2) | MixUp (α=0.2) |
+| **Class Weights** | Calculated from distribution | Same |
+| **Early Stopping** | patience=5 | patience=7 |
+| **Reduce LR** | factor=0.5, patience=3 | factor=0.5, patience=3 |
+
+#### **Performance Metrics**
+
+```
+Test Set Results (v2.0):
+├── Overall Accuracy: 95.6%
+├── Precision: 0.954
+├── Recall: 0.956
+├── F1-Score: 0.955
+└── Per-class Accuracy:
+    ├── Bacterial Spot: 94.2%
+    ├── Early Blight: 96.8%
+    ├── Healthy: 98.1%
+    ├── Late Blight: 95.3%
+    ├── Septoria Leaf Spot: 93.7%
+    └── Yellow Leaf Curl Virus: 95.5%
+```
+
+---
+
+## 🚀 Quick Start
 
 ## 🚀 Quick Start
 
