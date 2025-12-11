@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍅 Chẩn Đoán Bệnh Cà Chua</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍅</text></svg>">
     <style>
         * {
             margin: 0;
@@ -1177,22 +1178,22 @@
                 <div class="processed-images-grid">
                     <div class="processed-image-item">
                         <h4>📸 Ảnh Gốc</h4>
-                        <img id="originalCanvas" style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px;" alt="Original">
+                        <img id="originalCanvas" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px;" alt="Original">
                         <p class="image-desc">Ảnh gốc được sử dụng để phân tích đặc trưng</p>
                     </div>
                     <div class="processed-image-item">
                         <h4>🔲 Phát Hiện Đường Viền</h4>
-                        <img id="edgeCanvas" style="max-width: 100%; border: 2px solid #667eea; border-radius: 8px;" alt="Edge Detection">
+                        <img id="edgeCanvas" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" style="max-width: 100%; border: 2px solid #667eea; border-radius: 8px;" alt="Edge Detection">
                         <p class="image-desc">Sobel Edge Detection - phát hiện contour và hình dạng</p>
                     </div>
                     <div class="processed-image-item">
                         <h4>🎨 Phân Tích Màu Sắc</h4>
-                        <img id="colorCanvas" style="max-width: 100%; border: 2px solid #38ef7d; border-radius: 8px;" alt="Color Analysis">
+                        <img id="colorCanvas" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" style="max-width: 100%; border: 2px solid #38ef7d; border-radius: 8px;" alt="Color Analysis">
                         <p class="image-desc">HSV Color Analysis - xác định màu xanh lá, vàng, nâu</p>
                     </div>
                     <div class="processed-image-item">
                         <h4>🌿 Đặc Trưng Gân Lá</h4>
-                        <img id="veinCanvas" style="max-width: 100%; border: 2px solid #f5576c; border-radius: 8px;" alt="Vein Detection">
+                        <img id="veinCanvas" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" style="max-width: 100%; border: 2px solid #f5576c; border-radius: 8px;" alt="Vein Detection">
                         <p class="image-desc">Vein Detection - phát hiện cấu trúc gân lá bằng Gabor Filter</p>
                     </div>
                 </div>
@@ -1667,28 +1668,32 @@
             stepsDiv.innerHTML = stepsHtml;
             
             // Display summary
-            const summary = preprocessing.summary;
+            const summary = preprocessing.summary || {};
+            const totalSteps = summary.total_steps || preprocessing.steps?.length || 0;
+            const actionsTaken = summary.actions_taken || [];
+            const finalQuality = summary.final_quality || {};
+            
             let summaryHtml = `
                 <h4>📊 Tóm Tắt Kết Quả Xử Lý</h4>
                 <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
-                    Sau khi xử lý qua <strong>${summary.total_steps} bước</strong>, ảnh đã được tối ưu hóa và sẵn sàng cho mô hình AI phân tích.
+                    Sau khi xử lý qua <strong>${totalSteps} bước</strong>, ảnh đã được tối ưu hóa và sẵn sàng cho mô hình AI phân tích.
                 </p>
                 
                 <div class="summary-item">
                     <strong>✅ Các xử lý đã thực hiện:</strong>
                     <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-                        ${summary.actions_taken.map(action => `
+                        ${actionsTaken.length > 0 ? actionsTaken.map(action => `
                             <span class="summary-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px 12px; border-radius: 15px; font-size: 0.85em;">
                                 ${action}
                             </span>
-                        `).join('')}
+                        `).join('') : '<span style="color: #999;">Không có thông tin</span>'}
                     </div>
                 </div>
                 
                 <div class="summary-item" style="margin-top: 15px;">
                     <strong>🎯 Chất lượng ảnh sau xử lý:</strong>
                     <div style="margin-top: 8px; background: #f8f9fa; padding: 12px; border-radius: 8px;">
-                        ${Object.entries(summary.final_quality).map(([key, value]) => {
+                        ${Object.keys(finalQuality).length > 0 ? Object.entries(finalQuality).map(([key, value]) => {
                             const quality = getQualityIcon(key, value);
                             return `
                                 <div style="margin: 6px 0; color: #555; display: flex; justify-content: space-between; align-items: center;">
@@ -1698,7 +1703,7 @@
                                     </span>
                                 </div>
                             `;
-                        }).join('')}
+                        }).join('') : '<div style="color: #999;">Không có thông tin chất lượng</div>'}
                     </div>
                 </div>
                 
@@ -1750,8 +1755,6 @@
             section.style.display = 'block';
         }
 
-
-
         function formatQualityKey(key) {
             const keyMap = {
                 'brightness': '🌞 Độ sáng',
@@ -1799,80 +1802,6 @@
             img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
             
             modal.appendChild(img);
-            document.body.appendChild(modal);
-        }
-
-        function displayPreprocessing(preprocessing) {
-            const section = document.getElementById('preprocessingSection');
-            const stepsDiv = document.getElementById('preprocessingSteps');
-            const summaryDiv = document.getElementById('preprocessingSummary');
-            
-            // Display steps
-            let stepsHTML = '';
-            preprocessing.steps.forEach((step, index) => {
-                const stepNumber = index + 1;
-                stepsHTML += `
-                    <div class="preprocessing-step">
-                        <h4>📌 Bước ${stepNumber}: ${step.name}</h4>
-                        <p>${step.description}</p>
-                        ${step.image_base64 ? `<img src="${step.image_base64}" alt="${step.name}" onclick="showImageModal(this.src)">` : ''}
-                        ${step.metrics ? `
-                            <div class="preprocessing-metrics">
-                                ${Object.entries(step.metrics).map(([key, value]) => {
-                                    if (typeof value === 'object') return '';
-                                    return;
-                                }).join('')}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-            stepsDiv.innerHTML = stepsHTML;
-            
-            // Display summary
-            const summary = preprocessing.summary;
-            let summaryHTML = `
-                <h4>📊 Tổng Kết Xử Lý Ảnh</h4>
-                <div class="summary-item">
-                    <strong>Tổng số bước:</strong> 
-                    <span class="summary-badge">${summary.total_steps} bước</span>
-                </div>
-                <div class="summary-item">
-                    <strong>Các thao tác đã thực hiện:</strong>
-                </div>
-                <ul class="info-list" style="margin-left: 20px;">
-                    ${summary.actions_taken.map(action => `<li>${action}</li>`).join('')}
-                </ul>
-                <div class="summary-item" style="margin-top: 10px;">
-                    <strong>Chất lượng cuối:</strong>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
-                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
-                        💡 <strong>Độ sáng:</strong> ${summary.final_quality.brightness}
-                    </div>
-                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
-                        🎨 <strong>Tương phản:</strong> ${summary.final_quality.contrast}
-                    </div>
-                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
-                        🔊 <strong>Nhiễu:</strong> ${summary.final_quality.noise}
-                    </div>
-                    <div style="background: #f5f5f5; padding: 8px; border-radius: 5px;">
-                        🔍 <strong>Độ nét:</strong> ${summary.final_quality.sharpness}
-                    </div>
-                </div>
-            `;
-            summaryDiv.innerHTML = summaryHTML;
-            
-            // Show section
-            section.style.display = 'block';
-        }
-
-        function showImageModal(src) {
-            // Simple modal for viewing images
-            const modal = document.createElement('div');
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-            modal.innerHTML = `<img src="${src}" style="max-width:90%;max-height:90%;border-radius:10px;">`;
-            modal.onclick = () => modal.remove();
             document.body.appendChild(modal);
         }
 
@@ -1960,7 +1889,7 @@
 
             historyContainer.innerHTML = history.map(item => `
                 <div class="history-item" onclick="showHistoryDetail(${item.id})">
-                    <img src="${item.thumbnail}" alt="${item.predicted_class}">
+                    <img src="${item.thumbnail || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍅</text></svg>'}" alt="${item.predicted_class}">
                     <div class="history-details">
                         <div class="history-title">${item.predicted_class.replace('Tomato_', '').replace(/_/g, ' ')}</div>
                         <div class="history-meta">
@@ -2058,7 +1987,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="modal-image">
-                            <img src="${item.thumbnail}" alt="${item.predicted_class}">
+                            <img src="${item.thumbnail || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍅</text></svg>'}" alt="${item.predicted_class}">
                         </div>
                         
                         <div class="modal-prediction">

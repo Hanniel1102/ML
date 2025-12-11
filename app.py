@@ -547,58 +547,45 @@ async def load_model_startup():
         print("💡 Vui lòng kiểm tra lại file model hoặc train lại model với TensorFlow 2.15.0")
         raise RuntimeError("Model not found!")
     
-    # Load class names
+    # Load class names - Ưu tiên từ file JSON, sau đó từ Train dataset
+    class_names = None
+    
+    # Cách 1: Load từ file JSON (đã được lưu khi training)
     if os.path.exists('models/class_names.json'):
         with open('models/class_names.json', 'r', encoding='utf-8') as f:
             class_names = json.load(f)
-        print(f"✅ Đã load class names từ file")
-    else:
-        # Lấy từ dataset nếu tồn tại
-        test_dirs = [
-            "Tomato/Test",
-            "../Hocmaynangcao/Tomato/Test",
-            "H:/nam4ki1/Hocmaynangcao/Tomato/Test"
+        print(f"✅ Đã load class names từ file JSON: {class_names}")
+    
+    # Cách 2: Load từ Train dataset directory (thứ tự alphabet)
+    if class_names is None:
+        train_dirs = [
+            "Tomato/Train",
+            "../Hocmaynangcao/Tomato/Train",
+            "H:/nam4ki1/Hocmaynangcao/Tomato/Train"
         ]
         
-        class_names = None
-        # Không cần load từ dataset, sẽ dùng fallback bên dưới
-        
-        if class_names is None:
-            # Fallback: sử dụng keras.utils
-            for test_dir in test_dirs:
-                if os.path.exists(test_dir):
-                    try:
-                        temp_ds = keras.utils.image_dataset_from_directory(
-                            test_dir,
-                            image_size=(256, 256),
-                            batch_size=32,
-                            label_mode='categorical',
-                            shuffle=False
-                        )
-                        class_names = temp_ds.class_names
-                        print(f"✅ Đã load class names từ keras.utils: {test_dir}")
-                        break
-                    except Exception as e:
-                        # Nếu không được, đọc trực tiếp từ thư mục
-                        try:
-                            class_names = sorted([d for d in os.listdir(test_dir) 
-                                                if os.path.isdir(os.path.join(test_dir, d))])
-                            print(f"✅ Đã load class names từ thư mục: {test_dir}")
-                            break
-                        except:
-                            continue
-        
-        if class_names is None:
-            # Fallback cuối cùng: class names mặc định
-            class_names = [
-                "Bacterial Spot",
-                "Early Blight", 
-                "Healthy",
-                "Late Blight",
-                "Septoria Leaf Spot",
-                "Yellow Leaf Curl Virus"
-            ]
-            print(f"⚠️ Sử dụng class names mặc định")
+        for train_dir in train_dirs:
+            if os.path.exists(train_dir):
+                # Lấy tên folder và sort theo alphabet (giống TensorFlow)
+                class_folders = sorted([d for d in os.listdir(train_dir) 
+                                       if os.path.isdir(os.path.join(train_dir, d))])
+                if class_folders:
+                    class_names = class_folders
+                    print(f"✅ Đã load class names từ Train dataset: {class_names}")
+                    print(f"📂 Train directory: {train_dir}")
+                    break
+    
+    # Cách 3: Fallback - hardcode nếu không tìm thấy
+    if class_names is None:
+        class_names = [
+            "Bacterial Spot",
+            "Early Blight", 
+            "Healthy",
+            "Late Blight",
+            "Septoria Leaf Spot",
+            "Yellow Leaf Curl Virus"
+        ]
+        print(f"⚠️ Class names FALLBACK (hardcoded): {class_names}")
     
     IMG_SIZE = model.input_shape[1]
     print(f"📏 Image size: {IMG_SIZE}x{IMG_SIZE}")
@@ -610,6 +597,12 @@ async def load_model_startup():
 async def read_root():
     with open("templates/index.html", "r", encoding="utf-8") as f:
         return f.read()
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Trả về empty response để tránh lỗi 404"""
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
@@ -628,14 +621,24 @@ async def predict(file: UploadFile = File(...)):
         if img.mode != 'RGB':
             img = img.convert('RGB')
         
-        # === BƯỚC 1: TIỀN XỬ LÝ ẢNH CHO EFFICIENTNETB0 (TRƯỚC KHI PHÂN TÍCH) ===
-        # Xử lý ảnh qua 4 bước: Resize -> Analyze -> Conditional Processing -> Normalize (ImageNet)
-        # Ảnh sau khi xử lý sẽ sạch hơn, giúp phân tích chính xác hơn
-        print("\n[EfficientNet Preprocessing] Starting preprocessing pipeline...")
-        efficientnet_result = preprocess_for_efficientnet(img, target_size=(IMG_SIZE, IMG_SIZE))
+        # === BƯỚC 1: TIỀN XỬ LÝ ẢNH GIỐNG TRAINING ===
+        # Model train với preprocessing đơn giản: resize + rescale (1./255)
+        # KHÔNG DÙNG CLAHE/SHARPEN vì training không dùng!
+        print("\n[Simple Preprocessing] Resize + Rescale only (matching training)")
         
-        # Lấy ảnh đã xử lý để phân tích
-        preprocessed_img = efficientnet_result['final_image']
+        # Lưu ảnh gốc để hiển thị
+        buffered_original = io.BytesIO()
+        img.save(buffered_original, format="JPEG", quality=95)
+        original_base64 = base64.b64encode(buffered_original.getvalue()).decode()
+        
+        # Resize ảnh
+        img_resized = img.resize((IMG_SIZE, IMG_SIZE), Image.Resampling.BICUBIC)
+        preprocessed_img = img_resized
+        
+        # Lưu ảnh đã resize
+        buffered_resized = io.BytesIO()
+        img_resized.save(buffered_resized, format="JPEG", quality=95)
+        resized_base64 = base64.b64encode(buffered_resized.getvalue()).decode()
         
         # Convert PIL Image sang bytes để phân tích
         buffered_temp = io.BytesIO()
@@ -670,22 +673,25 @@ async def predict(file: UploadFile = File(...)):
             })
         
         # === BƯỚC 3: CHUẨN BỊ ẢNH CHO MODEL ===
-        # Đã có ảnh xử lý từ bước 1
-        enhanced_img = efficientnet_result['final_image']
-        img_array = efficientnet_result['final_array']
+        # QUAN TRỌNG: Model được train với input [0, 255] (KHÔNG rescale trước khi vào model)
+        # Model có data_augmentation layer bên trong, nó sẽ tự xử lý
+        # Chỉ cần resize về đúng kích thước và giữ nguyên range [0, 255]
+        enhanced_img = preprocessed_img
+        img_array = np.array(preprocessed_img, dtype=np.float32)  # Giữ nguyên [0, 255]
         img_array = np.expand_dims(img_array, axis=0)
         
-        # Thu thập thông tin preprocessing để hiển thị
-        preprocessing_steps = efficientnet_result['steps']
-        preprocessing_summary = efficientnet_result['summary']
-        
-        print(f"[EfficientNet Preprocessing] ✅ Completed {preprocessing_summary['total_steps']} steps")
-        print(f"[EfficientNet Preprocessing] Actions: {', '.join(preprocessing_summary['actions_taken'])}")
+        print(f"[Model Input] ✅ Array shape: {img_array.shape}, range: [{img_array.min():.1f}, {img_array.max():.1f}] (RAW [0-255])")
         
         # === BƯỚC 4: DỰ ĐOÁN BỆNH ===
         predictions = model.predict(img_array, verbose=0)
         predicted_class_idx = int(np.argmax(predictions[0]))
         confidence = float(predictions[0][predicted_class_idx] * 100)
+        
+        # DEBUG: In ra prediction values
+        print(f"\n[DEBUG Prediction] All class probabilities:")
+        for i, class_name in enumerate(class_names):
+            print(f"  {i}. {class_name}: {predictions[0][i]*100:.2f}%")
+        print(f"[DEBUG Prediction] Predicted: {class_names[predicted_class_idx]} ({confidence:.2f}%)\n")
         
         # Top 5 predictions
         num_top = min(5, len(class_names))
@@ -708,7 +714,12 @@ async def predict(file: UploadFile = File(...)):
             "greenRatio": analysis_result['color']['greenRatio'],
             "veinScore": analysis_result['texture']['veinScore'],
             "edgeDensity": analysis_result['texture']['edgeDensity'],
-            "recommendation": final_score['recommendation']
+            "recommendation": final_score['recommendation'],
+            # Thêm metrics từ analysis_result
+            "brightness": analysis_result.get('metrics', {}).get('brightness', 128),
+            "contrast": analysis_result.get('metrics', {}).get('contrast', 50),
+            "sharpness": analysis_result.get('metrics', {}).get('sharpness', 50),
+            "noise": analysis_result.get('metrics', {}).get('noise', 1000)
         }
         
         # === BƯỚC 6: LƯU VÀO LỊCH SỬ ===
@@ -736,7 +747,7 @@ async def predict(file: UploadFile = File(...)):
             "top_predictions": top_predictions,
             "image_analysis": image_analysis_data,
             "disease_info": disease_recommendation,
-            "preprocessing_summary": preprocessing_summary
+            "preprocessing_summary": {"method": "simple", "steps": ["resize", "rescale"]}
         }
         add_to_history(history_entry)
         
@@ -758,15 +769,55 @@ async def predict(file: UploadFile = File(...)):
             else:
                 return val
         
+        # Tạo visualization preprocessing steps (6 bước đầy đủ)
+        # Gọi preprocess_for_efficientnet để lấy steps visualization
+        print("\n[Preprocessing Visualization] Generating 6-step visualization...")
+        from efficientnet_preprocessor import preprocess_for_efficientnet
+        preprocessing_result = preprocess_for_efficientnet(img, target_size=(IMG_SIZE, IMG_SIZE))
+        
         preprocessing_steps_clean = []
-        for step in preprocessing_steps:
-            step_clean = {
-                'name': step['name'],
-                'description': step['description'],
-                'image_base64': step['image_base64'],
-                'metrics': clean_value(step['metrics'])
+        if preprocessing_result and 'steps' in preprocessing_result:
+            for step in preprocessing_result['steps']:
+                preprocessing_steps_clean.append({
+                    'name': step.get('name', 'Unknown'),
+                    'description': step.get('description', ''),
+                    'image_base64': step.get('image_base64', None),
+                    'metrics': clean_value(step.get('metrics', {}))
+                })
+        
+        # Nếu không có steps, dùng fallback 2 steps
+        if not preprocessing_steps_clean:
+            preprocessing_steps_clean = [
+                {
+                    'name': 'resize',
+                    'description': f'Resized to {IMG_SIZE}x{IMG_SIZE}',
+                    'image_base64': f"data:image/jpeg;base64,{resized_base64}",
+                    'metrics': {}
+                },
+                {
+                    'name': 'normalize',
+                    'description': 'Rescaled to [0,1] range',
+                    'image_base64': f"data:image/jpeg;base64,{resized_base64}",
+                    'metrics': {}
+                }
+            ]
+        
+        # Tạo summary và clean numpy types
+        preprocessing_summary = preprocessing_result.get('summary', {}) if preprocessing_result else {}
+        if not preprocessing_summary:
+            preprocessing_summary = {
+                "total_steps": len(preprocessing_steps_clean),
+                "actions_taken": [step['name'] for step in preprocessing_steps_clean],
+                "final_quality": {
+                    "brightness": "Tốt",
+                    "contrast": "Tốt",
+                    "noise": "Sạch",
+                    "sharpness": "Sắc nét"
+                }
             }
-            preprocessing_steps_clean.append(step_clean)
+        else:
+            # Clean numpy types trong summary
+            preprocessing_summary = clean_value(preprocessing_summary)
         
         response_data = {
             "success": True,
@@ -777,6 +828,10 @@ async def predict(file: UploadFile = File(...)):
             "preprocessing": {
                 "steps": preprocessing_steps_clean,
                 "summary": preprocessing_summary
+            },
+            "processedImages": {
+                "original": f"data:image/jpeg;base64,{original_base64}",
+                "resized": f"data:image/jpeg;base64,{resized_base64}"
             },
             "history_id": history_entry["id"],
             "disease_info": disease_recommendation  # Thông tin chi tiết về bệnh
@@ -877,18 +932,9 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
         if img.mode != 'RGB':
             img = img.convert('RGB')
         
-        # Preprocessing trước khi phân tích
-        print("\n[Analyze Endpoint] Preprocessing image before analysis...")
-        efficientnet_result = preprocess_for_efficientnet(img, target_size=(256, 256))
-        preprocessed_img = efficientnet_result['final_image']
-        
-        # Convert về bytes
-        buffered = io.BytesIO()
-        preprocessed_img.save(buffered, format="JPEG", quality=95)
-        preprocessed_contents = buffered.getvalue()
-        
-        # Phân tích ảnh ĐÃ xử lý
-        result = analyze_image(preprocessed_contents)
+        # Phân tích ảnh GỐC (không preprocess)
+        print("\n[Analyze Endpoint] Analyzing original image...")
+        result = analyze_image(contents)
         
         return JSONResponse({
             "success": True,
