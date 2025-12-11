@@ -655,13 +655,90 @@ async def predict(file: UploadFile = File(...)):
         is_leaf = analysis_result['isLeaf']
         
         if not is_leaf:
+            # Lấy đầy đủ thông tin để debug
+            shape_data = analysis_result['shape']
+            color_data = analysis_result['color']
+            texture_data = analysis_result['texture']
+            
+            # Trích xuất các metrics quan trọng
+            detailed_metrics = {
+                "overall_score": round(final_score['score'] * 100, 1),
+                "confidence_level": final_score['confidence'],
+                
+                # Shape metrics
+                "shape": {
+                    "score": final_score['shapeScore'],
+                    "aspectRatio": shape_data.get('aspectRatio', 'N/A'),
+                    "mainObjectRatio": shape_data.get('mainObjectRatio', 'N/A'),
+                    "greenDensity": shape_data.get('greenDensity', 'N/A'),
+                    "roundness": shape_data.get('roundness', 'N/A'),
+                    "elongation": shape_data.get('elongation', 'N/A')
+                },
+                
+                # Color metrics
+                "color": {
+                    "score": final_score['colorScore'],
+                    "greenRatio": color_data.get('greenRatio', 'N/A'),
+                    "yellowRatio": color_data.get('yellowRatio', 'N/A'),
+                    "brownRatio": color_data.get('brownRatio', 'N/A'),
+                    "avgSaturation": color_data.get('avgSaturation', 'N/A'),
+                    "avgHue": color_data.get('avgHue', 'N/A')
+                },
+                
+                # Texture/Vein metrics
+                "texture": {
+                    "score": final_score['textureScore'],
+                    "veinScore": texture_data.get('veinScore', 'N/A'),
+                    "edgeDensity": texture_data.get('edgeDensity', 'N/A'),
+                    "contrast": texture_data.get('contrast', 'N/A')
+                },
+                
+                # Thông tin trọng số (nếu có dynamic weighting)
+                "weights_used": final_score.get('weights_used', {
+                    "shape": 0.35,
+                    "color": 0.50,
+                    "texture": 0.15
+                }),
+                "situation": final_score.get('situation', 'normal')
+            }
+            
+            # Tạo thông báo chi tiết
+            criteria_check = {
+                "green_ratio_check": {
+                    "value": color_data.get('greenRatio', '0'),
+                    "threshold": "≥ 0.20 (20%)",
+                    "passed": float(color_data.get('greenRatio', 0)) >= 0.20
+                },
+                "vein_score_check": {
+                    "value": texture_data.get('veinScore', '0'),
+                    "threshold": "≥ 0.05",
+                    "passed": float(texture_data.get('veinScore', 0)) >= 0.05
+                },
+                "green_density_check": {
+                    "value": shape_data.get('greenDensity', '0'),
+                    "threshold": "≥ 0.15 (15%)",
+                    "passed": float(shape_data.get('greenDensity', 0)) >= 0.15
+                },
+                "overall_score_check": {
+                    "value": f"{final_score['score'] * 100:.1f}%",
+                    "threshold": "≥ 60%",
+                    "passed": final_score['score'] >= 0.60
+                }
+            }
+            
             return JSONResponse({
                 "success": False,
                 "error": "NOT_LEAF_IMAGE",
                 "message": f"⚠️ {final_score['recommendation']}",
-                "confidence": round(final_score['score'] * 100, 1),
                 "reason": final_score['confidence'],
                 "recommendation": "Vui lòng upload ảnh lá cà chua rõ ràng để phát hiện bệnh",
+                
+                # Thông tin chi tiết
+                "detailed_analysis": detailed_metrics,
+                "criteria_check": criteria_check,
+                
+                # Backward compatibility
+                "confidence": round(final_score['score'] * 100, 1),
                 "analysis": {
                     "score": round(final_score['score'] * 100, 1),
                     "shapeScore": final_score['shapeScore'],

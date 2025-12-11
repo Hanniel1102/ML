@@ -8,6 +8,14 @@ import cv2
 from PIL import Image
 import io
 
+# Import Frangi filter từ scikit-image (cài đặt nếu chưa có)
+try:
+    from skimage.filters import frangi
+    FRANGI_AVAILABLE = True
+except ImportError:
+    FRANGI_AVAILABLE = False
+    print("[Warning] scikit-image not available. Frangi filter will be disabled.")
+
 
 def analyze_image(image_bytes):
     """
@@ -39,8 +47,20 @@ def analyze_image(image_bytes):
     # 4. Tạo ảnh xử lý để hiển thị
     processed_images = generate_processed_images(img_array, edge_mask, texture_result)
     
-    # 5. Tính điểm tổng hợp
-    final_score = calculate_leaf_score(shape_features, color_features, texture_features)
+    # 5. Tính điểm tổng hợp với TRỌNG SỐ ĐỘNG
+    # Phát hiện điều kiện ảnh để điều chỉnh trọng số
+    image_conditions = {
+        'is_dark': np.mean(cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)) < 80,
+        'brightness': np.mean(cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)),
+        'contrast': np.std(cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY))
+    }
+    
+    final_score = calculate_dynamic_score(
+        shape_features, 
+        color_features, 
+        texture_features,
+        image_conditions=image_conditions
+    )
     
     # 6. Kiểm tra ĐƠN GIẢN: Chỉ cần đủ điểm VÀ đủ màu xanh
     green_ratio = float(color_features['greenRatio'])
@@ -153,8 +173,59 @@ def get_gabor_vein_response(img_gray):
         
         # Gộp kết quả: Giữ phản hồi mạnh nhất từ các hướng
         np.maximum(vein_map, filtered, out=vein_map)
-        
+    
+    # Chuyển về uint8 để tương thích với Frangi filter và OpenCV operations
+    vein_map = np.clip(vein_map, 0, 255).astype(np.uint8)
     return vein_map
+
+def detect_veins_frangi(img_gray):
+    """
+    Phát hiện gân lá bằng Frangi Vesselness Filter
+    Frangi filter chuyên phát hiện cấu trúc dạng mạch máu/gân lá
+    Hiệu quả hơn Gabor filter cho việc phát hiện cấu trúc phân nhánh
+    
+    Args:
+        img_gray: Ảnh grayscale
+        
+    Returns:
+        Ảnh response của Frangi filter (0-255)
+    """
+    if not FRANGI_AVAILABLE:
+        # Fallback về Gabor nếu không có scikit-image
+        return get_gabor_vein_response(img_gray)
+    
+    try:
+        # Chuẩn hóa ảnh về [0, 1]
+        img_normalized = img_gray.astype(np.float64) / 255.0
+        
+        # Frangi filter với tham số CHẶT HƠN để chỉ phát hiện gân chính
+        # sigmas: chỉ phát hiện gân to hơn (2-4 pixels) để tránh noise
+        # black_ridges=False: gân sáng hơn nền (thường đúng với lá xanh)
+        vein_response = frangi(
+            img_normalized,
+            sigmas=range(2, 5, 1),  # Multi-scale: 2, 3, 4 pixels (BỎ 1 pixel quá nhỏ)
+            black_ridges=False,      # Gân sáng hơn nền
+            alpha=0.5,               # Sensitivity to deviation from plate-like structure
+            beta=0.5,                # Sensitivity to blobness
+            gamma=25                 # Tăng từ 15->25: Giảm nhạy với background, chỉ lấy gân rõ
+        )
+        
+        # Áp dụng threshold để chỉ giữ gân mạnh (top 30% response)
+        threshold_value = np.percentile(vein_response, 70)  # Chỉ giữ top 30%
+        vein_response[vein_response < threshold_value] = 0
+        
+        # Normalize về [0, 255]
+        if vein_response.max() > 0:
+            vein_norm = ((vein_response - vein_response.min()) / 
+                         (vein_response.max() - vein_response.min() + 1e-8) * 255).astype(np.uint8)
+        else:
+            vein_norm = np.zeros_like(img_gray, dtype=np.uint8)
+        
+        return vein_norm
+        
+    except Exception as e:
+        print(f"[Warning] Frangi filter error: {e}. Falling back to Gabor.")
+        return get_gabor_vein_response(img_gray)
 
 def morphological_thinning(binary_img, iterations=10):
     """Thinning algorithm to extract skeleton"""
@@ -220,13 +291,24 @@ def analyze_texture(img_array):
     
     final_edge_mask = (outer_contour_mask > 0).astype(np.uint8)
     
-    # Phát hiện gân lá sử dụng Gabor filter
+    # Phát hiện gân lá sử dụng Frangi filter (ưu tiên) hoặc Gabor (fallback)
     gray_image = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-    gabor_response = get_gabor_vein_response(gray_image)
+    
+    # Sử dụng Frangi filter (tốt hơn cho cấu trúc gân lá)
+    if FRANGI_AVAILABLE:
+        frangi_response = detect_veins_frangi(gray_image)  # Trả về uint8
+        gabor_response = get_gabor_vein_response(gray_image)  # Trả về uint8
+        
+        # Weighted combination: 50% Frangi + 50% Gabor (cân bằng hơn để tránh over-detection)
+        vein_response = cv2.addWeighted(frangi_response, 0.5, gabor_response, 0.5, 0)
+    else:
+        # Fallback về Gabor nếu không có Frangi
+        vein_response = get_gabor_vein_response(gray_image)
+        gabor_response = vein_response
 
-    # Threshold với percentile để làm nổi bật gân lá
-    threshold_value = np.percentile(gabor_response[final_edge_mask], 75) if np.sum(final_edge_mask) > 0 else 127
-    _, vein_binary = cv2.threshold(gabor_response, threshold_value, 255, cv2.THRESH_BINARY)
+    # Threshold với percentile CAO HƠN để chỉ giữ gân chính (không phải toàn bộ texture)
+    threshold_value = np.percentile(vein_response[final_edge_mask], 80) if np.sum(final_edge_mask) > 0 else 140
+    _, vein_binary = cv2.threshold(vein_response, threshold_value, 255, cv2.THRESH_BINARY)
 
     # Morphological closing để nối các gân đứt đoạn
     kernel_connect = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
@@ -436,9 +518,173 @@ def analyze_color(img_array, edge_mask):
     }
 
 
+def calculate_dynamic_score(shape, color, texture, image_conditions=None):
+    """
+    HỆ THỐNG CHẤM ĐIỂM VỚI TRỌNG SỐ ĐỘNG
+    Điều chỉnh trọng số dựa trên tình huống ảnh:
+    - Ảnh tối: Giảm trọng số color, tăng texture/shape
+    - Lá bệnh: Tăng trọng số texture, giảm color
+    - Gân rõ: Tin tưởng texture hơn
+    
+    Args:
+        shape (dict): Đặc trưng hình dạng
+        color (dict): Đặc trưng màu sắc
+        texture (dict): Đặc trưng texture/gân lá
+        image_conditions (dict): Điều kiện ảnh (brightness, contrast, etc.)
+        
+    Returns:
+        dict: Kết quả chấm điểm với trọng số động
+    """
+    if image_conditions is None:
+        image_conditions = {}
+    
+    # Phát hiện tình huống
+    is_dark = image_conditions.get('is_dark', False)
+    is_diseased = float(color.get('greenRatio', 1.0)) < 0.3
+    vein_score = float(texture.get('veinScore', 0))
+    has_strong_veins = vein_score >= 0.4
+    
+    # === ĐIỀU CHỈNH TRỌNG SỐ THEO TÌNH HUỐNG ===
+    if is_dark:
+        # Ảnh tối: Giảm trọng số color, tăng texture/shape
+        weights = {
+            'shape': 0.40,   # +5%
+            'color': 0.35,   # -15%
+            'texture': 0.25  # +10%
+        }
+        situation = "dark_image"
+        
+    elif is_diseased:
+        # Lá bệnh: Tăng trọng số texture (gân lá), giảm color
+        weights = {
+            'shape': 0.35,
+            'color': 0.30,   # -20%
+            'texture': 0.35  # +20%
+        }
+        situation = "diseased_leaf"
+        
+    elif has_strong_veins:
+        # Gân rõ: Tin tưởng texture hơn
+        weights = {
+            'shape': 0.30,
+            'color': 0.40,
+            'texture': 0.30  # +15%
+        }
+        situation = "strong_veins"
+        
+    else:
+        # Trường hợp bình thường
+        weights = {
+            'shape': 0.35,
+            'color': 0.50,
+            'texture': 0.15
+        }
+        situation = "normal"
+    
+    # Tính điểm cho từng category (sử dụng logic cũ)
+    shape_score = _calculate_shape_score_internal(shape)
+    color_score = _calculate_color_score_internal(color)
+    texture_score = _calculate_texture_score_internal(texture)
+    
+    # Tính điểm tổng hợp với trọng số động
+    final_score = (
+        shape_score * weights['shape'] +
+        color_score * weights['color'] +
+        texture_score * weights['texture']
+    )
+    
+    # Hard constraints (giữ nguyên logic cũ)
+    green_ratio = float(color.get('greenRatio', 0))
+    green_density = float(shape.get('greenDensity', 0))
+    
+    failed_conditions = 0
+    if green_ratio < 0.20:
+        failed_conditions += 1
+    if green_density < 0.15:
+        failed_conditions += 1
+    if vein_score < 0.05:
+        failed_conditions += 1
+    
+    if failed_conditions == 3:
+        final_score = min(final_score, 0.20)
+    elif failed_conditions == 2:
+        final_score = min(final_score, 0.40)
+    elif failed_conditions == 1:
+        final_score = final_score * 0.8
+    
+    final_score = max(0.0, final_score)
+    
+    # Xác định confidence
+    if final_score >= 0.80:
+        confidence = 'Rất cao'
+        recommendation = f'Đây chắc chắn là ảnh lá cây ({situation}). Đặc điểm hình học, màu sắc, và cấu trúc gân rõ ràng.'
+    elif final_score >= 0.65:
+        confidence = 'Cao'
+        recommendation = f'Đây có khả năng cao là ảnh lá cây ({situation}). Đạt ngưỡng cơ bản, sẵn sàng phân loại bệnh.'
+    elif final_score >= 0.45:
+        confidence = 'Trung bình'
+        recommendation = f'Có một số đặc điểm của lá ({situation}), có thể là lá bị che khuất hoặc có nền phức tạp.'
+    else:
+        confidence = 'Thấp'
+        recommendation = f'Không đủ đặc trưng cốt lõi của lá cây ({situation}).'
+    
+    return {
+        'score': final_score,
+        'shapeScore': f"{shape_score:.3f}",
+        'colorScore': f"{color_score:.3f}",
+        'textureScore': f"{texture_score:.3f}",
+        'confidence': confidence,
+        'recommendation': recommendation,
+        'weights_used': weights,
+        'situation': situation
+    }
+
+def _calculate_shape_score_internal(shape):
+    """Helper: Tính shape score"""
+    aspect_ratio = float(shape['aspectRatio'])
+    main_object_ratio = float(shape['mainObjectRatio'])
+    green_density = float(shape.get('greenDensity', 0))
+    
+    if 0.3 <= aspect_ratio <= 3.0:
+        aspect_score = 0.9
+    elif 0.2 <= aspect_ratio <= 5.0:
+        aspect_score = 0.5
+    else:
+        aspect_score = 0.1
+    
+    object_score = min(main_object_ratio * 2.5, 1.0) if main_object_ratio > 0.2 else 0.1
+    green_score = min(green_density * 5, 1.0) if green_density > 0.1 else 0.0
+    
+    return (aspect_score * 0.3 + object_score * 0.3 + green_score * 0.4)
+
+def _calculate_color_score_internal(color):
+    """Helper: Tính color score"""
+    green_ratio = float(color['greenRatio'])
+    avg_saturation = float(color.get('avgSaturation', 0))
+    
+    if green_ratio < 0.20 or avg_saturation < 0.25:
+        return 0.0
+    elif green_ratio >= 0.50:
+        return 1.0
+    else:
+        color_score = 0.5 + (green_ratio - 0.20) * (5/3)
+        return min(color_score, 1.0)
+
+def _calculate_texture_score_internal(texture):
+    """Helper: Tính texture score"""
+    vein_score = float(texture['veinScore'])
+    
+    if vein_score >= 0.25:
+        return 1.0
+    elif vein_score >= 0.10:
+        return 0.5 + (vein_score - 0.10) * (1 / 0.15) * 0.5
+    else:
+        return vein_score * 5.0
+
 def calculate_leaf_score(shape, color, texture):
     """
     Tính điểm tổng hợp để xác định ảnh có phải là lá - nghiêm ngặt hơn
+    WRAPPER cho calculate_dynamic_score để tương thích ngược
     
     Args:
         shape (dict): Đặc trưng hình dạng.
@@ -448,12 +694,8 @@ def calculate_leaf_score(shape, color, texture):
     Returns:
         dict: Kết quả chấm điểm tổng hợp.
     """
-    # 1. Định nghĩa trọng số
-    weights = {
-        'shape': 0.35,  # Shape: quan trọng để phân biệt vật thể dẹp
-        'color': 0.50,  # Color: quan trọng nhất (để xác định lá xanh)
-        'texture': 0.15  # Texture: quan trọng để xác định gân lá
-    }
+    # Sử dụng hệ thống trọng số động
+    return calculate_dynamic_score(shape, color, texture, image_conditions={})
     
     # --- 2. Tính Shape Score ---
     aspect_ratio = float(shape['aspectRatio'])

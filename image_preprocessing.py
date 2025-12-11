@@ -29,6 +29,47 @@ class ImagePreprocessor:
         
         self.adaptive_mode = True  # Tự động điều chỉnh ngưỡng dựa trên điều kiện ảnh
         
+    def gray_world_white_balance(self, image: np.ndarray) -> np.ndarray:
+        """
+        Cân bằng trắng bằng Gray World Assumption
+        Giả định: Trung bình các màu trong ảnh nên là xám (neutral)
+        Phù hợp cho ảnh bị lệch màu do điều kiện ánh sáng
+        
+        Args:
+            image: Ảnh đầu vào (BGR)
+            
+        Returns:
+            Ảnh đã cân bằng màu
+        """
+        # Chuyển sang float32 để tính toán chính xác
+        result = image.astype(np.float32)
+        
+        # Tính giá trị trung bình cho mỗi kênh màu
+        avg_b = float(np.mean(result[:, :, 0]))
+        avg_g = float(np.mean(result[:, :, 1]))
+        avg_r = float(np.mean(result[:, :, 2]))
+        
+        # Tính giá trị xám trung bình
+        avg_gray = (avg_b + avg_g + avg_r) / 3.0
+        
+        # Tránh chia cho 0 và đảm bảo các giá trị hợp lệ
+        if avg_b > 1.0 and avg_g > 1.0 and avg_r > 1.0:
+            # Tính tỷ lệ điều chỉnh
+            scale_b = avg_gray / avg_b
+            scale_g = avg_gray / avg_g
+            scale_r = avg_gray / avg_r
+            
+            # Điều chỉnh mỗi kênh màu (giữ kiểu float32)
+            result[:, :, 0] = result[:, :, 0] * scale_b
+            result[:, :, 1] = result[:, :, 1] * scale_g
+            result[:, :, 2] = result[:, :, 2] * scale_r
+            
+            # Clip về range [0, 255]
+            result = np.clip(result, 0, 255)
+        
+        # Chuyển về uint8
+        return result.astype(np.uint8)
+    
     def auto_adjust_brightness(self, image: np.ndarray) -> np.ndarray:
         """
         Tự động điều chỉnh độ sáng cho ảnh tối hoặc quá sáng
@@ -78,8 +119,11 @@ class ImagePreprocessor:
         Returns:
             Ảnh đã được tăng cường
         """
-        # 0. Tự động điều chỉnh độ sáng trước (quan trọng cho ảnh tối)
-        brightness_adjusted = self.auto_adjust_brightness(image)
+        # 0. Cân bằng trắng bằng Gray World Assumption (NEW - xử lý lệch màu)
+        color_balanced = self.gray_world_white_balance(image)
+        
+        # 1. Tự động điều chỉnh độ sáng sau khi cân bằng màu
+        brightness_adjusted = self.auto_adjust_brightness(color_balanced)
         
         # 1. Khử nhiễu (tăng cường cho ảnh chất lượng kém)
         h_param = 15 if aggressive else 10
